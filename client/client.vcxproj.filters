@@ -13,5 +13,11 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Shared Header Files">
+      <UniqueIdentifier>{ec065cc0-f2cf-448a-9e2a-b4db05ec85f8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shared Source Files">
+      <UniqueIdentifier>{228a2c5f-2a9a-4de5-9e8d-e04e52013115}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>
