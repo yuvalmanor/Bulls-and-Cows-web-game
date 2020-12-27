@@ -1,3 +1,6 @@
-#include "messages.h"
+#include "sharedMessagesProcess.h"
 
-//test
+int messageDecoder(char* message) {
+
+	
+}
