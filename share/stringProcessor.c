@@ -10,3 +10,15 @@ int strToInt(char* stringNum) {
 	}
 	return result;
 }
+
+//Not done - need to decide how to implement it.
+int processAndCopy(char* string) {
+	char* tmpString = NULL;
+	int capacity = PAGE_SIZE;
+
+	if (NULL == (tmpString = malloc(strlen(string )))) {
+		printf("Fatal error: memory allocation for tmpString failed.\n");
+		return NOT_SUCCESS;
+	}
+	
+}

@@ -4,5 +4,9 @@
 
 #define LOCALHOST "127.0.0.1"
 #define MAX_NUM_OF_PLAYERS 2
+#define PAGE_SIZE 4096
+#define SUCCESS 1
+#define NOT_SUCCESS -1
+
 
 #endif // !HARDCODEDDATA_H
