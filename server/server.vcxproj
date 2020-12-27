@@ -141,8 +141,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\share\messages.c" />
     <ClCompile Include="main.c" />
-    <ClCompile Include="messages.c" />
     <ClCompile Include="servermain.c" />
     <ClCompile Include="servicethread.c" />
   </ItemGroup>

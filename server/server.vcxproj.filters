@@ -30,7 +30,7 @@
     <ClCompile Include="servermain.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="messages.c">
+    <ClCompile Include="..\share\messages.c">
       <Filter>Shared Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -44,10 +44,10 @@
     <ClInclude Include="servermain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\share\messages.h">
+    <ClInclude Include="..\share\hardcodeddata.h">
       <Filter>Shared Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\share\hardcodeddata.h">
+    <ClInclude Include="..\share\messages.h">
       <Filter>Shared Header Files</Filter>
     </ClInclude>
   </ItemGroup>

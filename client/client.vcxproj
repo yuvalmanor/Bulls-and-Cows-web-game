@@ -145,8 +145,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\share\hardcodeddata.h" />
+    <ClInclude Include="..\share\messages.h" />
     <ClInclude Include="main_client.h" />
-    <ClInclude Include="messages.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
