@@ -36,6 +36,9 @@
     <ClCompile Include="..\share\stringProcessor.c">
       <Filter>Shared Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="serverFullThread.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.h">
@@ -55,6 +58,9 @@
     </ClInclude>
     <ClInclude Include="..\share\stringProcessor.h">
       <Filter>Shared Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="serverFullThread.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -2,19 +2,15 @@
 #include "main_client.h"
 
 DWORD clientExample(SOCKET* t_socket) {
-	int i = 0;
-	while (i < 10000) {
-		printf("1");
-		i++;
-	}
-	printf("I<3Server.\n");
+	char message = getchar();
+	printf("I <3 the char %c\n", message);
 	closesocket(*t_socket);
 	return 0;
 }	
 
 int main() {
 	SOCKADDR_IN clientService;
-	HANDLE handleThread;
+	HANDLE threadHandle;
 	SOCKET m_socket;
 
 	// Initialize Winsock.
@@ -76,7 +72,7 @@ int main() {
 		the active socket, a char buffer, the number of bytes to send or receive, and any flags to use.
 
 	*/
-	handleThread = CreateThread(
+	threadHandle = CreateThread(
 		NULL,
 		0,
 		(LPTHREAD_START_ROUTINE)clientExample,
@@ -85,8 +81,8 @@ int main() {
 		NULL
 	);
 
-	WaitForSingleObject(handleThread, INFINITE);
-	CloseHandle(handleThread);
+	WaitForSingleObject(threadHandle, INFINITE);
+	CloseHandle(threadHandle);
 	WSACleanup();
 	return 0;
  }
