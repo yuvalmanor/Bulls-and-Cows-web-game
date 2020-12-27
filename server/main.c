@@ -2,8 +2,15 @@
 #include "main.h"
 
 int main(int argc, char* argv[]) {
-	//convert argv1 to int, check it's a valid port number
-	int portNumber = 2345; //should be argv1 after convertion
+	if (argc != 2) {
+		printf("Invalid number of arguments\n");
+		return -1;
+	}
+	int portNumber = strToInt(argv[1]);
+	if (portNumber < 0 || portNumber >9999) {
+		printf("Invalid port number\n");
+		return -1;
+	}
 	serverMain(portNumber);
 	return 0;
 }

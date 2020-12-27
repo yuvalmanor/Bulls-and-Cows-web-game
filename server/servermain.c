@@ -153,8 +153,8 @@ serverMain(int portNumber){
 			printf("Failed to close Winsocket, error %ld. Ending program.\n", WSAGetLastError());
 		return -1;
 	}
-	printf("listening to....\n");
-	printf("Waiting for a client to connect...\n");
+	printf("listening to IP: %s port %d\n", LOCALHOST, portNumber);
+	printf("Waiting for a client to connect\n");
 
 	//<------ Wait for clients to connect ------>
 	while (1) {
