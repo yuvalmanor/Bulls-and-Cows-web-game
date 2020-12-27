@@ -1,6 +1,12 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include "main_client.h"
+
 DWORD clientExample(SOCKET* t_socket) {
+	int i = 0;
+	while (i < 10000) {
+		printf("1");
+		i++;
+	}
 	printf("I<3Server.\n");
 	closesocket(*t_socket);
 	return 0;

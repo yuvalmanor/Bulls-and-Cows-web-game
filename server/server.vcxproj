@@ -142,9 +142,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.c" />
+    <ClCompile Include="servermain.c" />
+    <ClCompile Include="servicethread.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="hardcodeddata.h" />
     <ClInclude Include="main.h" />
+    <ClInclude Include="servermain.h" />
+    <ClInclude Include="servicethread.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

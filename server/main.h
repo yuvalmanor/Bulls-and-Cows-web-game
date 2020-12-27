@@ -1,17 +1,9 @@
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
 #ifndef MAIN_H
 #define MAIN_H
-#include <windows.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#pragma comment(lib, "Ws2_32.lib")
-
-
-
-
 #include <stdio.h>
 #include <string.h>
+#include "servermain.h"
+#include "servicethread.h"
+#include "hardcodeddata.h"
 
 #endif // !MAIN_H

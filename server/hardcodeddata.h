@@ -1,0 +1,8 @@
+
+#ifndef HARDCODEDDATA_H
+#define HARDCODEDDATA_H
+
+#define LOCALHOST "127.0.0.1"
+#define MAX_NUM_OF_PLAYERS 2
+
+#endif // !HARDCODEDDATA_H
