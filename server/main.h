@@ -5,5 +5,6 @@
 #include "servermain.h"
 #include "servicethread.h"
 #include "hardcodeddata.h"
+#include "stringProcessor.h"
 
 #endif // !MAIN_H

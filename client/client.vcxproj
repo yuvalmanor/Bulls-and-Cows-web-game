@@ -141,11 +141,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\share\sharedMessagesProcess.c" />
+    <ClCompile Include="..\share\stringProcessor.c" />
     <ClCompile Include="main_client.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\share\hardcodeddata.h" />
     <ClInclude Include="..\share\sharedMessagesProcess.h" />
+    <ClInclude Include="..\share\stringProcessor.h" />
     <ClInclude Include="main_client.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
