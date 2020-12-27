@@ -13,7 +13,13 @@
 #include <string.h>
 #include "hardcodeddata.h"
 #include "servicethread.h"
+#include "serverFullThread.h"
 
 serverMain(int portNumber);
+
+void TerminateServiceThreads(HANDLE* threadHandles, SOCKET* threadInputs);
+
+int FindFirstUnusedThreadSlot(HANDLE* threadHandles);
+
 
 #endif // !SERVERMAIN_H
