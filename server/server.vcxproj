@@ -72,7 +72,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(ProjectDir)\..\Share;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)\..\share;$(IncludePath)</IncludePath>
     <ExecutablePath>$(ProjectDir)\..\Debug;$(ExecutablePath)</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -142,11 +142,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.c" />
+    <ClCompile Include="messages.c" />
     <ClCompile Include="servermain.c" />
     <ClCompile Include="servicethread.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="hardcodeddata.h" />
+    <ClInclude Include="..\share\hardcodeddata.h" />
+    <ClInclude Include="..\share\messages.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="servermain.h" />
     <ClInclude Include="servicethread.h" />

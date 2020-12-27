@@ -72,7 +72,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(ProjectDir)\..\Share;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)\..\share;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -140,11 +140,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\share\messages.c" />
     <ClCompile Include="main_client.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\server\hardcodeddata.h" />
+    <ClInclude Include="..\share\hardcodeddata.h" />
     <ClInclude Include="main_client.h" />
+    <ClInclude Include="messages.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

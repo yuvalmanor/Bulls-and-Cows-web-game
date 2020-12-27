@@ -24,13 +24,19 @@
     <ClInclude Include="main_client.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\server\hardcodeddata.h">
+    <ClInclude Include="messages.h">
+      <Filter>Shared Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\share\hardcodeddata.h">
       <Filter>Shared Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main_client.c">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\share\messages.c">
+      <Filter>Shared Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
