@@ -6,5 +6,6 @@
 #include "servicethread.h"
 #include "hardcodeddata.h"
 #include "stringProcessor.h"
+#include "sharedMessagesProcess.h"
 
 #endif // !MAIN_H

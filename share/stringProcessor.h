@@ -6,6 +6,6 @@
 
 
 int strToInt(char* stringNum);
-int processAndCopy(char* string);
+int processAndCopy(char** dest, char* source, char* delim);
 #endif // !STRINGPROCESSOR_H
 
