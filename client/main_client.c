@@ -1,5 +1,6 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include "main_client.h"
+#include "BullsAndCows.h"
 
 int playGame(SOCKET m_socket){
 	//send server my username
@@ -17,7 +18,12 @@ int playGame(SOCKET m_socket){
 	}
 }	
 
-int main() {
+int main(int argc, char* argv[]) {
+	
+	if (argc != 4) {
+		printf("Invalid number of arguments\n");
+		return -1;
+	}
 	SOCKADDR_IN clientService;
 	HANDLE threadHandle;
 	SOCKET m_socket;
@@ -84,5 +90,6 @@ int main() {
 	playGame(m_socket);
 
 	WSACleanup();
+	
 	return 0;
  }
