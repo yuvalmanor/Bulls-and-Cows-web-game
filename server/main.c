@@ -13,9 +13,6 @@ int main(int argc, char* argv[]) {
 	}
 	serverMain(portNumber);
 	return 0;
-	
-	
-	//messageDecoder("SERVER_GAME_RESULTS:1;2;oded;3456\n");
-	return 0;
+
 }
 

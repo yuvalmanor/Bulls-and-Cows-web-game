@@ -13,7 +13,7 @@
 #define MSG_NUM 7
 
 typedef enum { CLIENT_REQUEST, CLIENT_SETUP, CLIENT_PLAYER_MOVE, SERVER_DENIED, SERVER_INVITE,
-SERVER_GAME_RESULTS, SERVER_WIN};
+SERVER_GAME_RESULTS, SERVER_WIN}messageTypesWithParams;
 typedef enum {USERNAME,GUESS,DENIED_REASON,ALL_FIELDS,USER_AND_GUESS};
 typedef struct Message {
 
@@ -30,6 +30,12 @@ typedef struct Message {
 
 
 Message* messageDecoder(char* messageStr);
-int setMessageParams(char* p_restOfMessage, Message* message);
+int setMessageParams(char* p_restOfMessage, int numOfParams, int msgType, Message* message);
 Message* initMessage(char* messageType);
+int getMessageType(char* messageType);
+int getField(int msgType);
+int getParamsNum(int type);
+int initOneParam(char* restOfMessage, int msgType, Message* message);
+int initTwoParams(char* restOfMessage, Message* message);
+int initFourParams(char* restOfMessage, Message* message);
 #endif // SHAREDMESSAGESPROCESS_H
