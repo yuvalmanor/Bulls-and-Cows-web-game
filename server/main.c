@@ -11,7 +11,7 @@ int main(int argc, char* argv[]) {
 		printf("Invalid port number\n");
 		return -1;
 	}
-	serverMain(portNumber);
+	serverManager(portNumber);
 	return 0;
 
 }

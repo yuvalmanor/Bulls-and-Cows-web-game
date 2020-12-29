@@ -15,7 +15,7 @@
 #include "servicethread.h"
 #include "serverFullThread.h"
 
-serverMain(int portNumber);
+serverManager(int portNumber);
 
 void TerminateServiceThreads(HANDLE* threadHandles, SOCKET* threadInputs);
 

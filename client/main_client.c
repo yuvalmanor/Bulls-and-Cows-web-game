@@ -1,11 +1,20 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include "main_client.h"
 
-DWORD clientExample(SOCKET* t_socket) {
-	char message = getchar();
-	printf("I <3 the char %c\n", message);
-	closesocket(*t_socket);
-	return 0;
+int playGame(SOCKET m_socket){
+	//send server my username
+	// get respond 
+	//if denied - quit
+	//else continue
+	while (1) {
+		//get message from server
+		//check message
+		//act according to message
+		//if MAIN_MANU:
+		//main_manu();
+		//else if 
+
+	}
 }	
 
 int main() {
@@ -72,17 +81,8 @@ int main() {
 		the active socket, a char buffer, the number of bytes to send or receive, and any flags to use.
 
 	*/
-	threadHandle = CreateThread(
-		NULL,
-		0,
-		(LPTHREAD_START_ROUTINE)clientExample,
-		&m_socket,
-		0,
-		NULL
-	);
+	playGame(m_socket);
 
-	WaitForSingleObject(threadHandle, INFINITE);
-	CloseHandle(threadHandle);
 	WSACleanup();
 	return 0;
  }

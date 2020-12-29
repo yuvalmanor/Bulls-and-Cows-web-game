@@ -1,7 +1,7 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include "servermain.h"
 
-serverMain(int portNumber){
+serverManager(int portNumber){
 	SOCKET MainSocket = INVALID_SOCKET;
 	SOCKET threadInputs[MAX_NUM_OF_PLAYERS+1] = { INVALID_SOCKET, INVALID_SOCKET, INVALID_SOCKET };
 	unsigned long Address;
@@ -46,7 +46,7 @@ serverMain(int portNumber){
 	*/
 	//<------- Create a sockaddr_in object and set its values ----->
 	// Declare variables
-	Address = inet_addr("127.0.0.1"); //------>Is this an unsafe function?
+	Address = inet_addr(LOCALHOST); //------>Is this an unsafe function?
 	if (Address == INADDR_NONE)
 	{
 		printf("The string \"%s\" cannot be converted into an ip address. ending program.\n",

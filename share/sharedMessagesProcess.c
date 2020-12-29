@@ -39,14 +39,13 @@ Message* messageDecoder(char* messageStr){
 	}
 	//in case the message is with parameters
 	message = initMessage(messageType);
-	if (NULL == message) return NULL;
+	if (NULL == message) /*free stuff*/return NULL;
 	msgTypeInt = getMessageType(messageType);
 	numOfParams = getParamsNum(msgTypeInt);
 	setMessageParams(p_restOfMessage, numOfParams, msgTypeInt, message);
-	
+	//free p_restOfMessage?
+	free(p_messageCpy);
 	return message;
-	
-
 }
 
 int setMessageParams(char* p_restOfMessage, int numOfParams, int msgType, Message* message) {
