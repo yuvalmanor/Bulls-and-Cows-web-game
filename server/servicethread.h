@@ -11,6 +11,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "SocketSendRecvTools.h"
+#include "sharedMessagesProcess.h"
+
+typedef struct ThreadParam {
+	SOCKET socket;
+	int offset;
+
+}ThreadParam;
 
 DWORD ServiceThread(SOCKET* t_socket);
 
