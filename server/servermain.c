@@ -1,19 +1,38 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include "servermain.h"
 
-int ServerMainFreeResources(SOCKET MainSocket) {
+int ServerMainFreeResources(SOCKET MainSocket, ThreadParam** threadParams) {
 	if (NULL != MainSocket) {
 		if (closesocket(MainSocket) == SOCKET_ERROR)
 			printf("Failed to close MainSocket in ServerMainFreeResources(). error %ld\n", WSAGetLastError());
 	}
-	if (WSACleanup() == SOCKET_ERROR)
+	if (WSACleanup() == SOCKET_ERROR) {
 		printf("Failed to close Winsocket in ServerMainFreeResources(). error %ld\n", WSAGetLastError());
+	}
+	for (int i = 0; i < 4; i++) {
+		if (threadParams[i] != NULL) {
+			if (closesocket(threadParams[i]->socket) == SOCKET_ERROR) {
+				printf("Can't close socket, it might alraedy be closed\n");
+			}
+			free(threadParams[i]);
+		}
+	}
+}
 
+ThreadParam* initThreadParam(SOCKET socket, int index) {
+		ThreadParam* p_threadparams = NULL;
+		if (NULL == (p_threadparams = (ThreadParam*)malloc(sizeof(ThreadParam)))) {
+			printf("Fatal error: memory allocation failed (ThreadParam).\n");
+			return NULL;
+		}
+		p_threadparams->socket = socket;
+		p_threadparams->offset = index*6; // 6 is arbitrary, we'll decide on the number later
+		return p_threadparams;
 }
 
 serverManager(int portNumber){
 	SOCKET MainSocket = INVALID_SOCKET;
-	SOCKET threadInputs[MAX_NUM_OF_PLAYERS+1] = { INVALID_SOCKET, INVALID_SOCKET, INVALID_SOCKET };
+	ThreadParam* threadParams[MAX_NUM_OF_PLAYERS+1] = { NULL, NULL, NULL };
 	unsigned long Address;
 	SOCKADDR_IN service;
 	int bindRes;
@@ -33,7 +52,7 @@ serverManager(int portNumber){
 	{
 		//Free resources, WSACleanup and end program with -1
 		printf("Error at socket( ): %ld\n", WSAGetLastError());
-		ServerMainFreeResources(NULL);
+		ServerMainFreeResources(NULL, threadParams);
 		return -1;
 	}
 
@@ -43,7 +62,7 @@ serverManager(int portNumber){
 	{
 		printf("The string \"%s\" cannot be converted into an ip address. ending program.\n",
 			LOCALHOST);
-		ServerMainFreeResources(MainSocket);
+		ServerMainFreeResources(MainSocket, threadParams);
 		return -1;
 	}
 	service.sin_family = AF_INET;
@@ -56,12 +75,8 @@ serverManager(int portNumber){
 	bindRes = bind(MainSocket, (SOCKADDR*)&service, sizeof(service));
 	if (bindRes == SOCKET_ERROR)
 	{
-		//Free resources: close socket, free address struct(?), WASCleanup, return -1
 		printf("bind( ) failed with error %ld. Ending program\n", WSAGetLastError());
-		if (closesocket(MainSocket) == SOCKET_ERROR)
-			printf("Failed to close MainSocket, error %ld. Ending program\n", WSAGetLastError());
-		if (WSACleanup() == SOCKET_ERROR)
-			printf("Failed to close Winsocket, error %ld. Ending program.\n", WSAGetLastError());
+		ServerMainFreeResources(MainSocket, threadParams);
 		return -1;
 	}
 	printf("socket bounded.\n");
@@ -72,10 +87,7 @@ serverManager(int portNumber){
 	{		
 		//Free resources: close socket, free address struct(?), WASCleanup, return -1
 		printf("Failed listening on socket, error %ld.\n", WSAGetLastError());
-		if (closesocket(MainSocket) == SOCKET_ERROR)
-			printf("Failed to close MainSocket, error %ld. Ending program\n", WSAGetLastError());
-		if (WSACleanup() == SOCKET_ERROR)
-			printf("Failed to close Winsocket, error %ld. Ending program.\n", WSAGetLastError());
+		ServerMainFreeResources(MainSocket, threadParams);
 		return -1;
 	}
 	printf("listening to IP: %s port %d\n", LOCALHOST, portNumber);
@@ -87,37 +99,42 @@ serverManager(int portNumber){
 	//<------ Wait for clients to connect ------>
 	while (1) {
 		SOCKET AcceptSocket = accept(MainSocket, NULL, NULL);
-		if (AcceptSocket == INVALID_SOCKET)
+		if (AcceptSocket == INVALID_SOCKET) //How should we handle this? close the program or continue as usual?
 		{
 			printf("Accepting connection with client failed, error %ld\n", WSAGetLastError());
-			TerminateServiceThreads(threadHandles, threadInputs); //We need to add termination of the other thread
-
+			//TerminateServiceThreads(threadHandles, threadParams); //Is this necessary?
 		}
-
 		printf("Client Connected.\n");
 
+		//Get the index of the first unused slot
 		index = FindFirstUnusedThreadSlot(threadHandles); //Doesn't seem to work - WFSO returns 0 and doesn't timeout
 
+		threadParams[index] = initThreadParam(AcceptSocket, index); //initialize parameters for this thread
+		if (threadParams[index] == NULL) { //If this fails, close the socket and wait for another client
+			closesocket(AcceptSocket);
+			continue;
+		}
 		if (index == MAX_NUM_OF_PLAYERS) //maximum number of clients are connected
 		{
-			threadInputs[index] = AcceptSocket; //The serverIsFUll thread is responisble for closing this socket
+			threadParams[index] = AcceptSocket; //The serverIsFUll thread is responisble for closing this socket
 			threadHandles[index] = CreateThread(
 				NULL,
 				0,
-				(LPTHREAD_START_ROUTINE)ServerFullThread,
-				&(threadInputs[index]),
+				(LPTHREAD_START_ROUTINE)ServerFullThread, //This type of thread lets the client know there's no room
+														//for another thread and then disconnects from it.
+				&(threadParams[index]),
 				0,
 				NULL
 			);
 		}
-		else
+		else //If there is room for the client in the game
 		{
-			threadInputs[index] = AcceptSocket; //The service thread is responisble for closing this socket
+			threadParams[index] = AcceptSocket; //The service thread is responisble for closing this socket
 			threadHandles[index] = CreateThread(
 				NULL,
 				0,
 				(LPTHREAD_START_ROUTINE)ServiceThread,
-				&(threadInputs[index]),
+				&(threadParams[index]),
 				0,
 				NULL
 			);
@@ -125,15 +142,11 @@ serverManager(int portNumber){
 	} //!while(1)
 
 	//How do we ensure that the program will end nicely?
-	if (closesocket(MainSocket) == SOCKET_ERROR)
-		printf("Failed to close MainSocket, error %ld. Ending program\n", WSAGetLastError());
-	//free address struct? anything else to free?
-	if (WSACleanup() == SOCKET_ERROR)
-		printf("Failed to close Winsocket, error %ld. Ending program.\n", WSAGetLastError());
+	ServerMainFreeResources(MainSocket, threadParams);
 }
 
 
-void TerminateServiceThreads(HANDLE* threadHandles, SOCKET* threadInputs)
+void TerminateServiceThreads(HANDLE* threadHandles, SOCKET* threadParams)
 {
 	int index;
 
@@ -146,7 +159,7 @@ void TerminateServiceThreads(HANDLE* threadHandles, SOCKET* threadInputs)
 			DWORD Res = WaitForSingleObject(threadHandles[index], INFINITE); //--->can't be infinite
 			if (Res == WAIT_OBJECT_0)
 			{
-				closesocket(threadInputs[index]);
+				closesocket(threadParams[index]);
 				CloseHandle(threadHandles[index]);
 				threadHandles[index] = NULL;
 				break;
