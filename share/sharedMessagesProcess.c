@@ -79,7 +79,7 @@ Message* initMessage(char* messageType) {
 		return NULL;
 	}
 	if (0 != (strcpy_s(message->type, strlen(messageType)+1, messageType))) {
-		printf("strcpy_s failed (messageDecoder)\n");
+		printf("strcpy_s failed (messageDecoder), message type might be invalid\n");
 		free(message);
 		return NULL;
 	}
@@ -108,6 +108,8 @@ int getMessageType(char* messageType) {
 		if (!strcmp(messageType, messageTypeArr[i]))
 			return i;
 	}
+	printf("invalid message type\n");
+	return -1;
 }
 
 int getField(int msgType) {

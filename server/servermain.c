@@ -57,7 +57,7 @@ serverManager(int portNumber){
 	}
 
 	//<------- Create a sockaddr_in object and set its values ----->
-	Address = inet_addr(LOCALHOST); //------>Is this an unsafe function?
+	Address = inet_addr(LOCALHOST); 
 	if (Address == INADDR_NONE)
 	{
 		printf("The string \"%s\" cannot be converted into an ip address. ending program.\n",
