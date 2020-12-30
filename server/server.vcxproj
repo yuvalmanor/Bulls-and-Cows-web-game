@@ -144,6 +144,7 @@
     <ClCompile Include="..\share\sharedMessagesProcess.c" />
     <ClCompile Include="..\share\SocketSendRecvTools.c" />
     <ClCompile Include="..\share\stringProcessor.c" />
+    <ClCompile Include="..\share\WinsockFunc.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="serverFullThread.c" />
     <ClCompile Include="servermain.c" />
@@ -154,6 +155,7 @@
     <ClInclude Include="..\share\sharedMessagesProcess.h" />
     <ClInclude Include="..\share\SocketSendRecvTools.h" />
     <ClInclude Include="..\share\stringProcessor.h" />
+    <ClInclude Include="..\share\WinsockFunc.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="serverFullThread.h" />
     <ClInclude Include="servermain.h" />

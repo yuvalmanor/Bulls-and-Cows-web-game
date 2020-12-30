@@ -1,6 +1,16 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include "servermain.h"
 
+int ServerMainFreeResources(SOCKET MainSocket) {
+	if (NULL != MainSocket) {
+		if (closesocket(MainSocket) == SOCKET_ERROR)
+			printf("Failed to close MainSocket in ServerMainFreeResources(). error %ld\n", WSAGetLastError());
+	}
+	if (WSACleanup() == SOCKET_ERROR)
+		printf("Failed to close Winsocket in ServerMainFreeResources(). error %ld\n", WSAGetLastError());
+
+}
+
 serverManager(int portNumber){
 	SOCKET MainSocket = INVALID_SOCKET;
 	SOCKET threadInputs[MAX_NUM_OF_PLAYERS+1] = { INVALID_SOCKET, INVALID_SOCKET, INVALID_SOCKET };
@@ -11,17 +21,10 @@ serverManager(int portNumber){
 	int index;
 	HANDLE threadHandles[MAX_NUM_OF_PLAYERS+1] = { NULL, NULL, NULL };
 
-	// Initialize Winsock.
-	WSADATA wsaData;
-	int StartupRes = WSAStartup(MAKEWORD(2, 2), &wsaData);
-
-	if (StartupRes != NO_ERROR)
-	{
-		printf("error %ld at WSAStartup( ), ending program.\n", WSAGetLastError());
-		// Tell the user that we could not find a usable WinSock DLL.                                  
-		return;
-	}/* The WinSock DLL is acceptable. Proceed. */
-
+	//<--------Initialize Winsock------->
+	if (-1 == InitializeWinsock()) { 
+		return -1;
+	}
 
 	// <-----Create a socket----->   
 	MainSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -30,46 +33,22 @@ serverManager(int portNumber){
 	{
 		//Free resources, WSACleanup and end program with -1
 		printf("Error at socket( ): %ld\n", WSAGetLastError());
-		if (WSACleanup() == SOCKET_ERROR)
-			printf("Failed to close Winsocket, error %ld. Ending program.\n", WSAGetLastError());
+		ServerMainFreeResources(NULL);
 		return -1;
 	}
 
-	// <------Bind the socket----->
-	/*
-		For a server to accept client connections, it must be bound to a network address within the system.
-		The following code demonstrates how to bind a socket that has already been created to an IP address
-		and port.
-		Client applications use the IP address and port to connect to the host network.
-		The sockaddr structure holds information regarding the address family, IP address, and port number.
-		sockaddr_in is a subset of sockaddr and is used for IP version 4 applications.
-	*/
 	//<------- Create a sockaddr_in object and set its values ----->
-	// Declare variables
 	Address = inet_addr(LOCALHOST); //------>Is this an unsafe function?
 	if (Address == INADDR_NONE)
 	{
 		printf("The string \"%s\" cannot be converted into an ip address. ending program.\n",
-			"127.0.0.1");
-		//Free resources: close socket, WASCleanup, return -1
-		if (closesocket(MainSocket) == SOCKET_ERROR)
-			printf("Failed to close MainSocket, error %ld. Ending program\n", WSAGetLastError());
-		if (WSACleanup() == SOCKET_ERROR)
-			printf("Failed to close Winsocket, error %ld. Ending program.\n", WSAGetLastError());
+			LOCALHOST);
+		ServerMainFreeResources(MainSocket);
 		return -1;
 	}
-
 	service.sin_family = AF_INET;
 	service.sin_addr.s_addr = Address;
-	service.sin_port = htons(portNumber); //The htons function converts a u_short from host to TCP/IP network byte order 
-									   //( which is big-endian ).
-	/*
-		The three lines following the declaration of sockaddr_in service are used to set up
-		the sockaddr structure:
-		AF_INET is the Internet address family.
-		"127.0.0.1" is the local IP address to which the socket will be bound.
-		2345 is the port number to which the socket will be bound.
-	*/
+	service.sin_port = htons(portNumber);
 
 	//<------- Bind ------->
 	// Call the bind function, passing the created socket and the sockaddr_in structure as parameters. 

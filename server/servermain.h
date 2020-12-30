@@ -14,6 +14,7 @@
 #include "hardcodeddata.h"
 #include "servicethread.h"
 #include "serverFullThread.h"
+#include "WinsockFunc.h"
 
 serverManager(int portNumber);
 
