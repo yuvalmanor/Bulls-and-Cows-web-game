@@ -8,7 +8,26 @@ int InitializeWinsock() {
 	{
 		printf("error %ld at WSAStartup( ), ending program.\n", WSAGetLastError());
 		// Tell the user that we could not find a usable WinSock DLL.                                  
-		return -1;
+		return NOT_SUCCESS;
 	}	
-	return 1;
+	return SUCCESS;
 }
+
+/*SOCKADDR_IN initAddress(char* ip, int portNumber) {
+	SOCKADDR_IN service;
+	unsigned long Address;
+
+	Address = inet_addr(ip); //------>Is this an unsafe function?
+	if (Address == INADDR_NONE)
+	{
+		printf("The string \"%s\" cannot be converted into an ip address. ending program.\n",
+			ip);
+		return NULL;
+	}
+	service.sin_family = AF_INET;
+	service.sin_addr.s_addr = Address;
+	service.sin_port = htons(portNumber);
+
+	return service;
+
+}*/

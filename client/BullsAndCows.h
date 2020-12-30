@@ -7,8 +7,12 @@
 #include "hardcodeddata.h"
 #include "SocketSendRecvTools.h"
 
-static char* client_request_type = "CLIENT_REQUEST";
-int playGame(char* username);
+#define CLIENT_MSG_NUM 5
+#define REQUEST_LEN 14
+
+int playGame(char* username, SOCKET c_socket);
 int playerChoice();
+char* prepareMsg(const char* msgType, char* str);
+int setup(char* username, SOCKET c_socket);
 
 #endif // !BULLSANDCOWS_H

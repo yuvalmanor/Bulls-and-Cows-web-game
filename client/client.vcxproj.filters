@@ -21,9 +21,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="main_client.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\share\hardcodeddata.h">
       <Filter>Shared Header Files</Filter>
     </ClInclude>
@@ -41,6 +38,9 @@
     </ClInclude>
     <ClInclude Include="..\share\WinsockFunc.h">
       <Filter>Shared Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="clientManager.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -61,6 +61,9 @@
     </ClCompile>
     <ClCompile Include="..\share\WinsockFunc.c">
       <Filter>Shared Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="clientManager.c">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
