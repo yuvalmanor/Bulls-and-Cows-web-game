@@ -145,6 +145,7 @@
     <ClCompile Include="..\share\stringProcessor.c" />
     <ClCompile Include="..\share\WinsockFunc.c" />
     <ClCompile Include="BullsAndCows.c" />
+    <ClCompile Include="clientManager.c" />
     <ClCompile Include="main_client.c" />
   </ItemGroup>
   <ItemGroup>
@@ -154,7 +155,7 @@
     <ClInclude Include="..\share\stringProcessor.h" />
     <ClInclude Include="..\share\WinsockFunc.h" />
     <ClInclude Include="BullsAndCows.h" />
-    <ClInclude Include="main_client.h" />
+    <ClInclude Include="clientManager.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

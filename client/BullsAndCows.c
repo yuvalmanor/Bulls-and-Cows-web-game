@@ -1,8 +1,19 @@
 #include "BullsAndCows.h"
 
-int playGame(char* username) {
-	int retVal;
+int playGame(char* username, SOCKET c_socket) {
+	int retVal, choice;
 	
+	choice = playerChoice();
+	if (1 == choice) {
+		if (NOT_SUCCESS == setup(username, c_socket))
+			return NOT_SUCCESS;
+	}
+	else if (2 == choice) {
+		//quit();
+		return 1;
+	}
+
+
 	
 
 	/*<---send server username--->*/
@@ -40,4 +51,30 @@ int playerChoice() {
 		return 1;
 	else if ('2' == option)
 		return 2;
+}
+int setup(char* username, SOCKET m_socket) {
+	char *clientRequest=NULL;
+	int sendRes;
+	clientRequest = prepareMsg("CLIENT_REQUEST:", username);
+	if (NULL == clientRequest) return NOT_SUCCESS;
+	sendRes = SendString(clientRequest, m_socket);
+	if (TRNS_FAILED == sendRes) {
+		free(clientRequest);
+		return NOT_SUCCESS;
+	}
+	//after send, should free(clientRequest)?
+	return SUCCESS;
+}
+char* prepareMsg(const char* msgType, char* str) {
+	char* message = NULL;
+	int messageLen = strlen(msgType) + strlen(str) + 2; //+2 for \n and \0
+	if (NULL == (message = malloc(messageLen))) {
+		printf("Fatal error: memory allocation failed (prepareMsg).\n");
+		return NULL;
+	}
+	strcpy_s(message, messageLen, msgType);
+	strcat_s(message, messageLen, str);
+	strcat_s(message, messageLen, "\n");
+	return message;
+
 }
