@@ -5,7 +5,10 @@
 #include <stdio.h>
 #include <string.h>
 #include "hardcodeddata.h"
+#include "SocketSendRecvTools.h"
 
-void menu();
+static char* client_request_type = "CLIENT_REQUEST";
+int playGame(char* username);
+int playerChoice();
 
 #endif // !BULLSANDCOWS_H
