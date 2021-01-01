@@ -74,7 +74,7 @@ TransferResult_t ReceiveBuffer( char* OutputBuffer, int BytesToReceive, SOCKET s
 	int RemainingBytesToReceive = BytesToReceive;
 	struct timeval waitTime = { 15, 0 };
 
-	etsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, (struct timeval*)&waitTime, sizeof(struct timeval));
+	setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, (struct timeval*)&waitTime, sizeof(struct timeval));
 	while ( RemainingBytesToReceive > 0 )  
 	{
 		/* send does not guarantee that the entire message is sent */
