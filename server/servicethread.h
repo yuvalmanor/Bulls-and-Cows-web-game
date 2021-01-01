@@ -20,6 +20,8 @@ typedef struct ThreadParam {
 
 }ThreadParam;
 
-DWORD ServiceThread(SOCKET* t_socket);
+static numOfPlayers = 0;
+
+DWORD ServiceThread(ThreadParam* lpParam);
 
 #endif // !SERVICETHREAD_H

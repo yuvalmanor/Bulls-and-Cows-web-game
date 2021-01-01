@@ -17,6 +17,7 @@ int ServerMainFreeResources(SOCKET MainSocket, ThreadParam** threadParams) {
 			free(threadParams[i]);
 		}
 	}
+	return 1;
 }
 
 ThreadParam* initThreadParam(SOCKET socket, int index) {
@@ -29,6 +30,27 @@ ThreadParam* initThreadParam(SOCKET socket, int index) {
 		p_threadparams->offset = index*6; // 6 is arbitrary, we'll decide on the number later
 		return p_threadparams;
 }
+
+//
+//HANDLE GetSyncEvent()
+//{
+//	HANDLE syncEvent;
+//	DWORD last_error;
+//
+//	/* Get handle to event by name. If the event doesn't exist, create it */
+//	syncEvent = CreateEvent(
+//		NULL, /* default security attributes */
+//		IS_MANUAL_RESET,       /* manual-reset event */
+//		IS_INITIALLY_SET,      /* initial state is non-signaled */
+//		P_EVENT_NAME);         /* name */
+//	/* Check if succeeded and handle errors */
+//
+//	last_error = GetLastError();
+//	/* If last_error is ERROR_SUCCESS, then it means that the event was created.
+//	   If last_error is ERROR_ALREADY_EXISTS, then it means that the event already exists */
+//
+//	return syncEvent;
+//}
 
 serverManager(int portNumber){
 	SOCKET MainSocket = INVALID_SOCKET;
@@ -93,6 +115,8 @@ serverManager(int portNumber){
 	}
 	printf("listening to IP: %s port %d\n", LOCALHOST, portNumber);
 
+	//Create syncronization mechanisms
+	//CreateEvent()
 	//Start polling for "quit" message - if it will happen, all threads must be closed, resources freed and program will end
 
 	printf("Waiting for a client to connect\n");

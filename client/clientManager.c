@@ -1,3 +1,4 @@
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include "clientManager.h"
 
 int clientManager(char* ip, int portNumber, char* username) {
