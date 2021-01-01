@@ -1,4 +1,3 @@
-#define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include "main_server.h"
 
 int main(int argc, char* argv[]) {

@@ -16,6 +16,8 @@
 #include "serverFullThread.h"
 #include "WinsockFunc.h"
 
+//#define EVENT_NAME "Event_1"
+
 
 serverManager(int portNumber);
 

@@ -7,6 +7,6 @@
 #define PAGE_SIZE 4096
 #define SUCCESS 1
 #define NOT_SUCCESS -1
-
+#define GAMESESSION_FILENAME "GameSession.txt"
 
 #endif // !HARDCODEDDATA_H
