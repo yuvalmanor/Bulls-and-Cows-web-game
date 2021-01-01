@@ -83,7 +83,7 @@ int setup(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* ip, 
 	if (NULL == clientRequest) return NOT_SUCCESS;
 	while (1)
 	{
-		
+		printf("Sending %s to server\n", clientRequest);
 		res = SendString(clientRequest, c_socket);
 		/*HERE SHOULD CHECK IF TRNS_FAILED OR NOT AND HANDLE IT, ALSO WHAT ABOUT TIMEOUT
 		if (TRNS_FAILED == res) {
@@ -91,6 +91,7 @@ int setup(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* ip, 
 		return NOT_SUCCESS;
 		}	*/
 		//after send, should free(clientRequest)?
+		printf("sent\nWaiting for message from server\n");
 		res = ReceiveString(&recvMsg, c_socket);
 		/*HERE SHOULD CHECK IF TRNS_FAILED OR NOT AND TRNS_DISCONNECTED AND
 		HANDLE IT, ALSO WHAT ABOUT TIMEOUT*/
