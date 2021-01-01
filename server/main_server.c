@@ -1,5 +1,5 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
-#include "main.h"
+#include "main_server.h"
 
 int main(int argc, char* argv[]) {
 	if (argc != 2) {

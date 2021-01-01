@@ -1,5 +1,5 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
-#include "servermain.h"
+#include "serverManager.h"
 
 int ServerMainFreeResources(SOCKET MainSocket, ThreadParam** threadParams) {
 	if (NULL != MainSocket) {
@@ -57,6 +57,7 @@ serverManager(int portNumber){
 	}
 
 	//<------- Create a sockaddr_in object and set its values ----->
+
 	Address = inet_addr(LOCALHOST); 
 	if (Address == INADDR_NONE)
 	{

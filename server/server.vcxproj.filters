@@ -24,9 +24,6 @@
     <ClCompile Include="servicethread.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="servermain.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\share\sharedMessagesProcess.c">
       <Filter>Shared Source Files</Filter>
     </ClCompile>
@@ -42,18 +39,15 @@
     <ClCompile Include="..\share\WinsockFunc.c">
       <Filter>Shared Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="main.c">
+    <ClCompile Include="serverManager.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="main_server.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="main.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="servicethread.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="servermain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\share\hardcodeddata.h">
@@ -73,6 +67,12 @@
     </ClInclude>
     <ClInclude Include="..\share\WinsockFunc.h">
       <Filter>Shared Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="serverManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="main_server.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

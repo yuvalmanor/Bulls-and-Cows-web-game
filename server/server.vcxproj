@@ -145,9 +145,9 @@
     <ClCompile Include="..\share\SocketSendRecvTools.c" />
     <ClCompile Include="..\share\stringProcessor.c" />
     <ClCompile Include="..\share\WinsockFunc.c" />
-    <ClCompile Include="main.c" />
+    <ClCompile Include="main_server.c" />
     <ClCompile Include="serverFullThread.c" />
-    <ClCompile Include="servermain.c" />
+    <ClCompile Include="serverManager.c" />
     <ClCompile Include="servicethread.c" />
   </ItemGroup>
   <ItemGroup>
@@ -156,9 +156,9 @@
     <ClInclude Include="..\share\SocketSendRecvTools.h" />
     <ClInclude Include="..\share\stringProcessor.h" />
     <ClInclude Include="..\share\WinsockFunc.h" />
-    <ClInclude Include="main.h" />
+    <ClInclude Include="main_server.h" />
     <ClInclude Include="serverFullThread.h" />
-    <ClInclude Include="servermain.h" />
+    <ClInclude Include="serverManager.h" />
     <ClInclude Include="servicethread.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

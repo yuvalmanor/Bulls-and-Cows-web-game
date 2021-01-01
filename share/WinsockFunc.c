@@ -17,7 +17,7 @@ int InitializeWinsock() {
 	SOCKADDR_IN service;
 	unsigned long Address;
 
-	Address = inet_addr(ip); //------>Is this an unsafe function?
+	Address = inet_addr(ip); 
 	if (Address == INADDR_NONE)
 	{
 		printf("The string \"%s\" cannot be converted into an ip address. ending program.\n",
