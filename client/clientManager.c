@@ -74,6 +74,59 @@ int makeConnection(SOCKET c_socket, SOCKADDR_IN clientService, char* ip, int por
 	}
 	return SUCCESS;
 }
+int setup(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* ip, int portNumber) {
+	char* clientRequest = NULL, *recvMsg = NULL;
+	int res, choice;
+	Message* serverMsg=NULL;
+
+	clientRequest = prepareMsg("CLIENT_REQUEST:", username);
+	if (NULL == clientRequest) return NOT_SUCCESS;
+	while (1)
+	{
+		printf("Sending %s to server\n", clientRequest);
+		res = SendString(clientRequest, c_socket);
+		/*HERE SHOULD CHECK IF TRNS_FAILED OR NOT AND HANDLE IT, ALSO WHAT ABOUT TIMEOUT
+		if (TRNS_FAILED == res) {
+		free(clientRequest);
+		return NOT_SUCCESS;
+		}	*/
+		//after send, should free(clientRequest)?
+		printf("sent\nWaiting for message from server\n");
+		res = ReceiveString(&recvMsg, c_socket);
+		/*HERE SHOULD CHECK IF TRNS_FAILED OR NOT AND TRNS_DISCONNECTED AND
+		HANDLE IT, ALSO WHAT ABOUT TIMEOUT*/
+		if (TRNS_SUCCEEDED != res) {
+			if (SUCCESS != checkTRNSCode(res, ip, portNumber, c_socket, clientService))
+				return NOT_SUCCESS;
+			else
+				continue;
+		}
+		serverMsg = messageDecoder(recvMsg);
+		if (NULL == serverMsg) {
+			free(serverMsg);
+			return NOT_SUCCESS;
+		}
+		if (!strcmp(serverMsg, "SERVER_APROVED")) {
+			free(serverMsg);
+			return SUCCESS;
+		}
+		else if (!strcmp(serverMsg, "SERVER_DENIED")) {
+			free(serverMsg);
+			choice = menu(DENIED, ip, portNumber);
+			if (1 == choice) {
+				if (EXIT == makeConnection(c_socket, clientService, ip, portNumber))
+					return EXIT;
+				else
+					continue;
+			}
+			else if (2 == choice)
+				return EXIT;
+		}
+	}
+	
+
+	return SUCCESS;
+}
 void resourcesManager(SOCKET c_socket, int WSACleanFlag) {
 
 	if (NULL != c_socket) {

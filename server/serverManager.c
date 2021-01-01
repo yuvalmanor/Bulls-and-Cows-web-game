@@ -165,7 +165,7 @@ serverManager(int portNumber){
 			);
 		}
 	} //!while(1)
-
+	printf("We shouldn't be here\n");
 	//How do we ensure that the program will end nicely?
 	ServerMainFreeResources(MainSocket, threadParams);
 }
