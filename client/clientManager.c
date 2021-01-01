@@ -75,7 +75,7 @@ int makeConnection(SOCKET c_socket, SOCKADDR_IN clientService, char* ip, int por
 	return SUCCESS;
 }
 int setup(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* ip, int portNumber) {
-	char* clientRequest = NULL, recvMsg = NULL;
+	char* clientRequest = NULL, *recvMsg = NULL;
 	int res, choice;
 	Message* serverMsg=NULL;
 
