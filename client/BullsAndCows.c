@@ -3,15 +3,7 @@
 int playGame(char* username, SOCKET c_socket) {
 	int retVal, choice;
 	
-	choice = playerChoice();
-	if (1 == choice) {
-		if (NOT_SUCCESS == setup(username, c_socket))
-			return NOT_SUCCESS;
-	}
-	else if (2 == choice) {
-		//quit();
-		return 1;
-	}
+	
 
 
 	
@@ -33,13 +25,12 @@ int playGame(char* username, SOCKET c_socket) {
 	return 0;
 }
 
+
 int playerChoice() {
 	char option;
-	int t;
+	
 
-	printf("Choose what to do next:\n");
-	printf("1. Play against another client\n");
-	printf("2. Quit\n");
+	
 	option = getchar();
 	printf("option:%c\n", option);
 	while (option != '1' && option != '2') {
@@ -52,19 +43,7 @@ int playerChoice() {
 	else if ('2' == option)
 		return 2;
 }
-int setup(char* username, SOCKET m_socket) {
-	char *clientRequest=NULL;
-	int sendRes;
-	clientRequest = prepareMsg("CLIENT_REQUEST:", username);
-	if (NULL == clientRequest) return NOT_SUCCESS;
-	sendRes = SendString(clientRequest, m_socket);
-	if (TRNS_FAILED == sendRes) {
-		free(clientRequest);
-		return NOT_SUCCESS;
-	}
-	//after send, should free(clientRequest)?
-	return SUCCESS;
-}
+
 char* prepareMsg(const char* msgType, char* str) {
 	char* message = NULL;
 	int messageLen = strlen(msgType) + strlen(str) + 2; //+2 for \n and \0

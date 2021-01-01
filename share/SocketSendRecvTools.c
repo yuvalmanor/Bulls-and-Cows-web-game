@@ -72,7 +72,9 @@ TransferResult_t ReceiveBuffer( char* OutputBuffer, int BytesToReceive, SOCKET s
 	char* CurPlacePtr = OutputBuffer;
 	int BytesJustTransferred;
 	int RemainingBytesToReceive = BytesToReceive;
-	
+	struct timeval waitTime = { 15, 0 };
+
+	etsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, (struct timeval*)&waitTime, sizeof(struct timeval));
 	while ( RemainingBytesToReceive > 0 )  
 	{
 		/* send does not guarantee that the entire message is sent */
@@ -84,6 +86,9 @@ TransferResult_t ReceiveBuffer( char* OutputBuffer, int BytesToReceive, SOCKET s
 		}		
 		else if ( BytesJustTransferred == 0 )
 			return TRNS_DISCONNECTED; // recv() returns zero if connection was gracefully disconnected.
+		else if (BytesJustTransferred < 0) {  //recv() is TIME_OUTED
+			return TRNS_TIMEOUT;
+		}
 
 		RemainingBytesToReceive -= BytesJustTransferred;
 		CurPlacePtr += BytesJustTransferred; // <ISP> pointer arithmetic

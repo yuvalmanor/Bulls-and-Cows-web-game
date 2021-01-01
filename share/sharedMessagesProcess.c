@@ -8,13 +8,13 @@ Message* messageDecoder(char* messageStr){
 	//p_messageCpy memory allocation
 	if (NULL == (p_messageCpy = malloc(strlen(messageStr) + 1))) {
 		printf("Fatal error: memory allocation for tmpString failed.\n");
-		return NOT_SUCCESS;
+		return NULL;
 	}
 
 	//copy messageStr to p_messageCpy
 	if (0 != (strcpy_s(p_messageCpy, strlen(messageStr) + 1, messageStr))) {
 		printf("strcpy_s failed (messageDecoder)\n");
-		return NOT_SUCCESS;
+		return NULL;
 	}
 	//<---Get message type--->
 	//in case the message is without parameters
