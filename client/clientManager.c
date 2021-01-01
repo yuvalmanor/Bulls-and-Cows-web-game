@@ -45,7 +45,7 @@ int clientManager(char* ip, int portNumber, char* username) {
 		return EXIT;
 	}
 	
-	playGame(username, c_socket);
+	playGame(username, c_socket, clientService, ip, portNumber);
 
 	resourcesManager(c_socket,CLEAN);
 }
@@ -139,51 +139,4 @@ void resourcesManager(SOCKET c_socket, int WSACleanFlag) {
 	}
 	
 	
-}
-int checkTRNSCode(int TRNSCode, char* ip, int portNumber, SOCKET c_socket, SOCKADDR_IN clientService) {
-	int choice;
-
-	if (TRNSCode == TRNS_FAILED) {
-		printf("Socket error while trying to write data to socket\n");
-		return NOT_SUCCESS;
-	}
-	else if (TRNSCode == TRNS_DISCONNECTED || TRNSCode == TRNS_TIMEOUT) {
-		choice = menu(FAILURE, ip, portNumber);
-		if (1 == choice) {
-			if (EXIT == makeConnection(c_socket, clientService, ip, portNumber))
-				return EXIT;
-			else
-				return SUCCESS;
-		}
-		else if (2 == choice)
-			return EXIT;
-	}
-	
-}
-int menu(int menu, char* ip, int portNumber) {
-	int choice;
-
-	switch (menu) {
-	case MAIN:
-		printf("Choose what to do next:\n");
-		printf("1. Play against another client\n");
-		printf("2. Quit\n");
-		break;
-	case FAILURE:
-		printf("Failed connecting to server on %s:%d.\n", ip, portNumber);
-		printf("Choose what to do next:\n");
-		printf("1. Try to reconnect\n");
-		printf("2. Exit\n");
-		break;
-	case DENIED:
-		printf("Server on %s:%d denied the connection request.\n");
-		printf("Choose what to do next:\n");
-		printf("1. Try to reconnect\n");
-		printf("2. Exit\n");
-		break;
-	}
-
-	choice = playerChoice();
-	return choice;
-
 }

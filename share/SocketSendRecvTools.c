@@ -73,7 +73,7 @@ TransferResult_t ReceiveBuffer( char* OutputBuffer, int BytesToReceive, SOCKET s
 	int BytesJustTransferred;
 	int RemainingBytesToReceive = BytesToReceive;
 	struct timeval waitTime = { 15, 0 };
-
+	
 	setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, (struct timeval*)&waitTime, sizeof(struct timeval));
 	while ( RemainingBytesToReceive > 0 )  
 	{
