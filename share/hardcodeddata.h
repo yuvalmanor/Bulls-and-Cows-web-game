@@ -8,5 +8,6 @@
 #define SUCCESS 1
 #define NOT_SUCCESS -1
 #define GAMESESSION_FILENAME "GameSession.txt"
+#define MAX_USERNAME_LEN 20
 
 #endif // !HARDCODEDDATA_H

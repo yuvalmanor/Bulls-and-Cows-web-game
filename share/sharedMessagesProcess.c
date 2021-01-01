@@ -14,6 +14,7 @@ Message* messageDecoder(char* messageStr){
 	//copy messageStr to p_messageCpy
 	if (0 != (strcpy_s(p_messageCpy, strlen(messageStr) + 1, messageStr))) {
 		printf("strcpy_s failed (messageDecoder)\n");
+		//free p_messageCpy
 		return NULL;
 	}
 	//<---Get message type--->
