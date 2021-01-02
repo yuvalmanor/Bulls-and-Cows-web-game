@@ -16,7 +16,8 @@
 
 typedef struct ThreadParam {
 	SOCKET socket;
-	int offset;
+	int offset; //Not necessary
+	int* p_players;
 
 }ThreadParam;
 

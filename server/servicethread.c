@@ -44,18 +44,17 @@ int writeUserNameToFile(HANDLE h_file, char* username, int playerOne, char** oth
 		DWORD dwBytesWritten, filePointer, dwBytesRead;
 		int numOfBytesToWrite = (int)strlen(username);
 		char* buffer = NULL;
-		if (NULL == (buffer = (char*)malloc(MAX_USERNAME_LEN))) {
-			printf("Fatal error: memory allocation failed (writeUserNameToFile).\n");
-			return 0;
-		}
 
 		filePointer = SetFilePointer(h_file, 36, NULL, FILE_BEGIN); //Change 36 to a DEFINED
 		if (INVALID_SET_FILE_POINTER == filePointer) {
 			printf("File pointer failed to move\nError code:%d\n", GetLastError());
-			free(buffer);
 			return 0;
 		}
 		if (!playerOne) { //this is the second client. Read the first client's username and add yours afterwards
+			if (NULL == (buffer = (char*)malloc(MAX_USERNAME_LEN))) {
+				printf("Fatal error: memory allocation failed (writeUserNameToFile).\n");
+				return 0;
+			}
 			printf("second client\n");
 			if (FALSE == ReadFile(h_file, buffer, MAX_USERNAME_LEN, &dwBytesRead, NULL)) {//Does it read until the \n?
 				printf("File read failed.\nError code:%d\n", GetLastError());
@@ -70,7 +69,7 @@ int writeUserNameToFile(HANDLE h_file, char* username, int playerOne, char** oth
 				}
 			}
 			*otherUsername = buffer;
-		} //Will this bring us to the right place in the file?
+		} 
 		if (FALSE == WriteFile(h_file, username, numOfBytesToWrite, &dwBytesWritten, NULL)) {
 			printf("File write failed.\nError code:%d\n", GetLastError());
 			return 0;
@@ -80,6 +79,39 @@ int writeUserNameToFile(HANDLE h_file, char* username, int playerOne, char** oth
 			return 0;
 		}
 		return 1;
+}
+
+int getPlayer2Name(HANDLE h_sharedFile, char* username, char** otherUsername) {
+	DWORD filePointer, dwBytesRead;
+	int usernameLen = (int)strlen(username); char* buffer;
+
+	filePointer = SetFilePointer(h_sharedFile, 36+usernameLen+2, NULL, FILE_BEGIN); //Change 36 to a DEFINED
+	if (INVALID_SET_FILE_POINTER == filePointer) {
+		printf("File pointer failed to move\nError code:%d\n", GetLastError());
+		return NOT_SUCCESS;
+	}
+	if (NULL == (buffer = (char*)malloc(MAX_USERNAME_LEN))) {
+		printf("Fatal error: memory allocation failed (writeUserNameToFile).\n");
+		return NOT_SUCCESS;
+	}
+	if (FALSE == ReadFile(h_sharedFile, buffer, MAX_USERNAME_LEN, &dwBytesRead, NULL)) {//Does it read until the \n?
+		printf("File read failed.\nError code:%d\n", GetLastError());
+		free(buffer);
+		return NOT_SUCCESS;
+	}
+	//Place \0 at the right place
+	for (int i = 0; i < MAX_USERNAME_LEN; i++) {
+		if (buffer[i] == '\r') {
+			buffer[i] = '\0';
+			break;
+		}
+	}
+	*otherUsername = buffer;
+	return SUCCESS;
+}
+
+void leaveGame(SOCKET socket, int* p_players, HANDLE h_sharedFile, HANDLE fileEven) {
+
 }
 
 DWORD ServiceThread(ThreadParam* lpParam) {
@@ -92,7 +124,8 @@ DWORD ServiceThread(ThreadParam* lpParam) {
 	}
 	p_param = (ThreadParam*)lpParam;
 	SOCKET socket = p_param->socket;
-	int offset = p_param->offset, playerOne, transferred;
+	int offset = p_param->offset, playerOne, transferred, retVal;
+	int* p_players = p_param->p_players;
 	char* username = NULL, *otherUsername = NULL;
 	char* p_msg = NULL;
 	Message* message = NULL;
@@ -119,23 +152,23 @@ DWORD ServiceThread(ThreadParam* lpParam) {
 		h_sharedFile = openOrCreateFile(&playerOne);
 		if (h_sharedFile == INVALID_HANDLE_VALUE) {
 			//do stuff cuz this thread is going down
+
 			return -1;
 		}
 		//Write the username to the file and increment the (global) number of players
 		if (!writeUserNameToFile(h_sharedFile, username, playerOne, &otherUsername)) {
 			//leaveGame()
+			CloseHandle(h_sharedFile);
 			break;
 		}
+		(*p_players)++;
 		//leave critical zone
-		if (playerOne) {
-			//wait for event caused by the other player
-			//get other username
-		}
-		//leave critical zone
+		CloseHandle(h_sharedFile);
 		printf("I am %s\nOther player is %s\n", username, otherUsername);
 		//<------Main menu------->
 		if ((transferred = sendMessage(socket, "SERVER_MAIN_MENU\n")) != 1) {
 			//leaveGame()
+			(*p_players)--;
 			if (transferred) {
 				//disconnected
 				break;
@@ -159,25 +192,46 @@ DWORD ServiceThread(ThreadParam* lpParam) {
 		}
 		if (strcmp((message->type), "CLIENT_DISCONNECT") == 0) { //Player chose 2
 			free(message);
-			if (!DeleteFileW(sharedFileName)) { // Had problems deleteing the file
-				printf("Trouble deleting %s file. Quitting\n", GAMESESSION_FILENAME);
-				break;
+			if (playerOne) {
+				if (!DeleteFileW(sharedFileName)) { // Had problems deleteing the file
+					printf("Trouble deleting %s file. Quitting\n", GAMESESSION_FILENAME);
+				}
 			}
 			//leaveGame()
+			(*p_players)--;
 			break;
 		}
 		else if (strcmp((message->type), "CLIENT_VERSUS") != 0) { //invalid message type
 			printf("message type %s is not relevant here \n", message->type);
 			free(message); 
-			CloseHandle(h_sharedFile);
-			if (DeleteFileW(sharedFileName)) { // Had problems deleteing the file
-				printf("Trouble deleting %s file. Quitting\n", GAMESESSION_FILENAME);
-				break;
+			if (playerOne) {
+				if (!DeleteFileW(sharedFileName)) { // Had problems deleteing the file
+					printf("Trouble deleting %s file. Quitting\n", GAMESESSION_FILENAME);
+					break;
+				}
 			}
 			//leaveGame()
+			(*p_players)--;
 			break; //Is this what we want?
 		}
 		free(message); message = NULL;
+		//wait for fileEvent
+		if (*p_players != 2) {//not enough players
+			//release event
+			//leavegame()
+			(*p_players)--;
+			continue;
+		}
+		if (playerOne) { //player 1 needs to get player 2's username
+			retVal = getPlayer2Name(h_sharedFile, username, &otherUsername);
+			if (retVal == NOT_SUCCESS) {
+				//release event
+				//leavegame()
+				(*p_players)--;
+				break;
+			}
+			//release event
+		}
 		// <------- Get player's secretNum ----->
 
 

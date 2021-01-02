@@ -20,7 +20,7 @@ int ServerMainFreeResources(SOCKET MainSocket, ThreadParam** threadParams) {
 	return 1;
 }
 
-ThreadParam* initThreadParam(SOCKET socket, int index) {
+ThreadParam* initThreadParam(SOCKET socket, int index, int* players) {
 		ThreadParam* p_threadparams = NULL;
 		if (NULL == (p_threadparams = (ThreadParam*)malloc(sizeof(ThreadParam)))) {
 			printf("Fatal error: memory allocation failed (ThreadParam).\n");
@@ -28,29 +28,30 @@ ThreadParam* initThreadParam(SOCKET socket, int index) {
 		}
 		p_threadparams->socket = socket;
 		p_threadparams->offset = index*6; // 6 is arbitrary, we'll decide on the number later
+		p_threadparams->p_players = players;
 		return p_threadparams;
 }
 
-//
-//HANDLE GetSyncEvent()
-//{
-//	HANDLE syncEvent;
-//	DWORD last_error;
-//
-//	/* Get handle to event by name. If the event doesn't exist, create it */
-//	syncEvent = CreateEvent(
-//		NULL, /* default security attributes */
-//		IS_MANUAL_RESET,       /* manual-reset event */
-//		IS_INITIALLY_SET,      /* initial state is non-signaled */
-//		P_EVENT_NAME);         /* name */
-//	/* Check if succeeded and handle errors */
-//
-//	last_error = GetLastError();
-//	/* If last_error is ERROR_SUCCESS, then it means that the event was created.
-//	   If last_error is ERROR_ALREADY_EXISTS, then it means that the event already exists */
-//
-//	return syncEvent;
-//}
+
+HANDLE GetSyncEvent()
+{
+	HANDLE syncEvent;
+	DWORD last_error;
+	LPCSTR FileEvent = "FileEvent";
+	/* Get handle to event by name. If the event doesn't exist, create it */
+	syncEvent = CreateEvent(
+		NULL, /* default security attributes */
+		FALSE,       /* auto-reset event */
+		TRUE,      /* initial state is signaled */
+		FileEvent);         /* name */
+	/* Check if succeeded and handle errors */
+
+	last_error = GetLastError();
+	/* If last_error is ERROR_SUCCESS, then it means that the event was created.
+	   If last_error is ERROR_ALREADY_EXISTS, then it means that the event already exists */
+
+	return syncEvent;
+}
 
 serverManager(int portNumber){
 	SOCKET MainSocket = INVALID_SOCKET;
@@ -60,6 +61,7 @@ serverManager(int portNumber){
 	int bindRes;
 	int ListenRes;
 	int index;
+	int players = 0;
 	HANDLE threadHandles[MAX_NUM_OF_PLAYERS+1] = { NULL, NULL, NULL };
 
 	//<--------Initialize Winsock------->
@@ -134,7 +136,7 @@ serverManager(int portNumber){
 		//Get the index of the first unused slot
 		index = FindFirstUnusedThreadSlot(threadHandles); //Doesn't seem to work - WFSO returns 0 and doesn't timeout
 
-		threadParams[index] = initThreadParam(AcceptSocket, index); //initialize parameters for this thread
+		threadParams[index] = initThreadParam(AcceptSocket, index, &players); //initialize parameters for this thread
 		if (threadParams[index] == NULL) { //If this fails, close the socket and wait for another client
 			closesocket(AcceptSocket);
 			continue;
