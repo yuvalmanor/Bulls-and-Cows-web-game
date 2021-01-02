@@ -1,33 +1,32 @@
 #include "sharedMessagesProcess.h"
 
-Message* getMessage(SOCKET socket, int waitTime) {
+int getMessage(SOCKET socket, Message** message, int waitTime) {
 	TransferResult_t transResult;
 	char* p_rawMessage = NULL;
-	Message* message = NULL;
 	transResult = ReceiveString(&p_rawMessage, socket, waitTime);
-	if (transResult == TRNS_FAILED) {
-		printf("transfer failed\n");
-		return NULL;
+	if (transResult != TRNS_FAILED) {
+		printf("Transfer failed\n");
+		return TRNS_FAILED;
 	}
 	else if (transResult == TRNS_DISCONNECTED) {
-		printf("transfer disconnected\n");
+		printf("Transfer disconnected\n");
 		if (NULL != p_rawMessage) {
 			free(p_rawMessage);
 		}
-		return NULL;
+		return TRNS_DISCONNECTED;
 	}
 	else if (transResult == TRNS_TIMEOUT) {
 		printf("Transfer timed out\n");
-		return NULL;
+		return TRNS_TIMEOUT;
 		}
-	message = messageDecoder(p_rawMessage);
-	if (message == NULL) {
+	(*message) = messageDecoder(p_rawMessage);
+	if (*message == NULL) {
 		printf("There was a problem with processing the message\n");
 		free(p_rawMessage);
-		return NULL;
+		return TRNS_FAILED; //We might need to change this 
 	}
 	free(p_rawMessage);
-	return message;
+	return TRNS_SUCCEEDED;
 }
 
 int sendMessage(SOCKET socket, char* rawMessage) {

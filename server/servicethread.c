@@ -89,16 +89,15 @@ DWORD ServiceThread(ThreadParam* lpParam) {
 	}
 	p_param = (ThreadParam*)lpParam;
 	SOCKET socket = p_param->socket;
-	int offset = p_param->offset, playerOne, sent;
+	int offset = p_param->offset, playerOne, transferred;
 	char* username = NULL, otherUsername = NULL;
 	char* p_msg = NULL;
 	Message* message = NULL;
 	HANDLE sharedFile = NULL;
-	TransferResult_t transResult;
 	printf("Waiting for username from client\n");
 		//Get username from client
-	message = getMessage(socket, 15); //Change waitTime to a DEFINED number 
-	if (message == NULL) {
+	transferred = getMessage(socket, &message, 15); //Change waitTime to a DEFINED number 
+	if (transferred != 1) {
 		printf("couldn't get username from client. Quitting\n");
 		return -1;
 	}
@@ -124,23 +123,25 @@ DWORD ServiceThread(ThreadParam* lpParam) {
 		//leave critical zone
 		printf("client %d username is %s\n", offset, username);
 		//<------Main menu------->
-		if ((sent = sendMessage(socket, "SERVER_MAIN_MENU\n")) != 1) {
+		if ((transferred = sendMessage(socket, "SERVER_MAIN_MENU\n")) != 1) {
 			//leaveGame()
-			if (sent) {
+			if (transferred) {
 				//disconnected
 				break;
 			}//sent failed
 			continue;
 		}
 		//<----Player main menu response---->
-		message = getMessage(socket, 15);
-		if (message == NULL) {//message didn't make it
-			printf("No response from user in Main menu\n");
-			if (playerOne) { //If this is player one, delete the file
-				//leaveGame() <- delete file if needed, close file handle decrement players.
-				if (!DeleteFileW(sharedFileName)) { // Had problems deleteing the file
-					printf("Trouble deleting %s file. Quitting\n", GAMESESSION_FILENAME);
-					break;
+		transferred = getMessage(socket, &message, 15);
+		if (transferred != 1) {
+			if (transferred){
+				printf("No response from user in Main menu\n");
+				if (playerOne) { //If this is player one, delete the file
+					//leaveGame() <- delete file if needed, close file handle decrement players.
+					if (!DeleteFileW(sharedFileName)) { // Had problems deleteing the file
+						printf("Trouble deleting %s file. Quitting\n", GAMESESSION_FILENAME);
+						break;
+					}
 				}
 			} //go back to main menu
 			continue;
@@ -150,6 +151,7 @@ DWORD ServiceThread(ThreadParam* lpParam) {
 			if (!DeleteFileW(sharedFileName)) { // Had problems deleteing the file
 				printf("Trouble deleting %s file. Quitting\n", GAMESESSION_FILENAME);
 				break;
+			}
 			//leaveGame()
 			break;
 		}
@@ -159,6 +161,7 @@ DWORD ServiceThread(ThreadParam* lpParam) {
 			if (!DeleteFileW(sharedFileName)) { // Had problems deleteing the file
 				printf("Trouble deleting %s file. Quitting\n", GAMESESSION_FILENAME);
 				break;
+			}
 			//leaveGame()
 			break; //Is this what we want?
 		}
@@ -182,8 +185,6 @@ DWORD ServiceThread(ThreadParam* lpParam) {
 	printf("leaving game.\n");
 	closesocket(socket);
 	return 0;
-
-
 }
 
 

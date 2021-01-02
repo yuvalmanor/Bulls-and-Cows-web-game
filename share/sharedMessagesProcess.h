@@ -29,7 +29,7 @@ typedef struct Message {
 
 }Message;
 
-Message* getMessage(SOCKET socket, int waitTime);
+int getMessage(SOCKET socket, Message** message, int waitTime);
 int sendMessage(SOCKET socket, char* rawMessage);
 Message* messageDecoder(char* messageStr);
 int setMessageParams(char* p_restOfMessage, int numOfParams, int msgType, Message* message);

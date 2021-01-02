@@ -17,7 +17,7 @@
 
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 
-typedef enum { TRNS_FAILED, TRNS_DISCONNECTED, TRNS_SUCCEEDED , TRNS_TIMEOUT} TransferResult_t;
+typedef enum { TRNS_FAILED, TRNS_SUCCEEDED, TRNS_DISCONNECTED , TRNS_TIMEOUT} TransferResult_t;
 
 /**
  * SendBuffer() uses a socket to send a buffer.
