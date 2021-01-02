@@ -4,7 +4,7 @@ int getMessage(SOCKET socket, Message** message, int waitTime) {
 	TransferResult_t transResult;
 	char* p_rawMessage = NULL;
 	transResult = ReceiveString(&p_rawMessage, socket, waitTime);
-	if (transResult != TRNS_FAILED) {
+	if (transResult == TRNS_FAILED) {
 		printf("Transfer failed\n");
 		return TRNS_FAILED;
 	}

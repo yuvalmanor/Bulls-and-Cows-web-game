@@ -4,7 +4,7 @@ HANDLE openOrCreateFile(int *playerOne) {
 	DWORD dwDesiredAccess = 0, dwShareMode = 0, dwCreationDisposition = 0;
 	HANDLE hFile;
 	dwDesiredAccess = (GENERIC_READ | GENERIC_WRITE);
-	dwShareMode = FILE_SHARE_READ;
+	dwShareMode = FILE_SHARE_DELETE;
 	//Try to open existing file:
 	dwCreationDisposition = OPEN_EXISTING;
 	hFile = CreateFileA(GAMESESSION_FILENAME,
@@ -70,19 +70,22 @@ int writeUserNameToFile(HANDLE h_file, char* username, int playerOne, char** oth
 				}
 			}
 			*otherUsername = buffer;
-			free(buffer);
 		} //Will this bring us to the right place in the file?
 		if (FALSE == WriteFile(h_file, username, numOfBytesToWrite, &dwBytesWritten, NULL)) {
 			printf("File write failed.\nError code:%d\n", GetLastError());
 			return 0;
+		}
+		if (FALSE == WriteFile(h_file, "\r\n", 1, &dwBytesWritten, NULL)) {
+			printf("File write failed.\nError code:%d\n", GetLastError());
+			return 0;
+		}
 		return 1;
-	}
 }
 
 DWORD ServiceThread(ThreadParam* lpParam) {
 	//get thread parameters
 	ThreadParam* p_param;
-	LPCWSTR sharedFileName = (LPCWSTR)GAMESESSION_FILENAME;
+	LPCWSTR sharedFileName = GAMESESSION_FILENAME;
 	if (NULL == lpParam) {
 		printf("Service thread can't work with NULL as parameters\n");
 		return -1;
@@ -90,10 +93,10 @@ DWORD ServiceThread(ThreadParam* lpParam) {
 	p_param = (ThreadParam*)lpParam;
 	SOCKET socket = p_param->socket;
 	int offset = p_param->offset, playerOne, transferred;
-	char* username = NULL, otherUsername = NULL;
+	char* username = NULL, *otherUsername = NULL;
 	char* p_msg = NULL;
 	Message* message = NULL;
-	HANDLE sharedFile = NULL;
+	HANDLE h_sharedFile = NULL;
 	printf("Waiting for username from client\n");
 		//Get username from client
 	transferred = getMessage(socket, &message, 15); //Change waitTime to a DEFINED number 
@@ -113,15 +116,23 @@ DWORD ServiceThread(ThreadParam* lpParam) {
 	while (1) {
 		//Go into critical zone
 		//open or create the GameSession file and check if this is player one or not
-		sharedFile = openOrCreateFile(&playerOne);
-		if (sharedFile == INVALID_HANDLE_VALUE) {
+		h_sharedFile = openOrCreateFile(&playerOne);
+		if (h_sharedFile == INVALID_HANDLE_VALUE) {
 			//do stuff cuz this thread is going down
 			return -1;
 		}
 		//Write the username to the file and increment the (global) number of players
-		
+		if (!writeUserNameToFile(h_sharedFile, username, playerOne, &otherUsername)) {
+			//leaveGame()
+			break;
+		}
 		//leave critical zone
-		printf("client %d username is %s\n", offset, username);
+		if (playerOne) {
+			//wait for event caused by the other player
+			//get other username
+		}
+		//leave critical zone
+		printf("I am %s\nOther player is %s\n", username, otherUsername);
 		//<------Main menu------->
 		if ((transferred = sendMessage(socket, "SERVER_MAIN_MENU\n")) != 1) {
 			//leaveGame()
@@ -156,9 +167,10 @@ DWORD ServiceThread(ThreadParam* lpParam) {
 			break;
 		}
 		else if (strcmp((message->type), "CLIENT_VERSUS") != 0) { //invalid message type
-			printf("message type is invalid, %s instead of CLIENT_VERSUS\n", message->type);
+			printf("message type %s is not relevant here \n", message->type);
 			free(message); 
-			if (!DeleteFileW(sharedFileName)) { // Had problems deleteing the file
+			CloseHandle(h_sharedFile);
+			if (DeleteFileW(sharedFileName)) { // Had problems deleteing the file
 				printf("Trouble deleting %s file. Quitting\n", GAMESESSION_FILENAME);
 				break;
 			}
