@@ -168,7 +168,7 @@ int getField(int msgType) {
 	else if (msgType == CLIENT_SETUP || msgType == CLIENT_PLAYER_MOVE) field = GUESS;
 	else if (msgType == SERVER_DENIED) field = DENIED_REASON;
 	else if (msgType == SERVER_GAME_RESULTS) field = ALL_FIELDS;
-	else if (msgType == SERVER_WIN) field == USER_AND_GUESS;
+	else if (msgType == SERVER_WIN) field = USER_AND_GUESS;
 	return field;
 }
 int initOneParam(char* restOfMessage, int msgType, Message* message) {

@@ -8,7 +8,6 @@ int playGame(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* i
 	while (1) {
 		/*<---send server username--->*/
 		if (SUCCESS != setup(username, c_socket, clientService, ip, portNumber)) {
-			resourcesManager(c_socket, CLEAN);
 			return EXIT;
 		}
 		status = getMessage(c_socket, &p_serverMsg, 15);
@@ -82,7 +81,7 @@ int setup(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* ip, 
 			free(p_serverMsg);
 			return SUCCESS;
 		}
-		else if (!strcmp(p_serverMsg, "SERVER_DENIED")) {
+		else if (!strcmp(p_serverMsg->type, "SERVER_DENIED")) {
 			free(p_serverMsg);
 			choice = menu(DENIED, ip, portNumber);
 			if (1 == choice) {
@@ -118,7 +117,8 @@ int start(SOCKET c_socket) {
 		return GameIsOn(c_socket);
 		
 	}
-	else if (!strcmp(p_serverMsg->type, "SERVER_NO_OPPONENTS")) {
+	//if server message is SERVER_NO_OPPONENTS
+	else {
 		free(p_serverMsg);
 		printf("No opponents were found.\n");
 		return START_AGAIN;
@@ -127,7 +127,7 @@ int start(SOCKET c_socket) {
 
 }
 int GameIsOn(SOCKET c_socket) {
-	char* p_clientMsg = NULL, * p_userChoice = NULL, p_guess = NULL;
+	char* p_clientMsg = NULL, * p_userChoice = NULL, *p_guess = NULL;
 	int status;
 	Message* p_serverMsg = NULL;
 
@@ -209,7 +209,7 @@ int playerChoice() {
 	}
 	if ('1' == option)
 		return 1;
-	else if ('2' == option)
+	else
 		return 2;
 }
 char* prepareMsg(const char* msgType, char* str) {
@@ -234,15 +234,15 @@ int checkTRNSCode(int TRNSCode, char* ip, int portNumber, SOCKET c_socket, SOCKA
 	if (TRNSCode == TRNS_FAILED) {
 		return NOT_SUCCESS;
 	}
-	else if (TRNSCode == TRNS_DISCONNECTED || TRNSCode == TRNS_TIMEOUT) {
-		choice = menu(FAILURE, ip, portNumber);
+	else // (TRNSCode == TRNS_DISCONNECTED || TRNSCode == TRNS_TIMEOUT) 
+	{choice = menu(FAILURE, ip, portNumber);
 		if (1 == choice) {
 			if (EXIT == makeConnection(c_socket, clientService, ip, portNumber))
 				return EXIT;
 			else
 				return SUCCESS;
 		}
-		else if (2 == choice)
+		else //choice==2
 			return EXIT;
 	}
 
@@ -333,4 +333,41 @@ void gameResults(Message* message, int status) {
 	}
 	free(message->username);
 	free(message->guess);
+}
+int makeConnection(SOCKET c_socket, SOCKADDR_IN clientService, char* ip, int portNumber) {
+	int choice;
+
+	while (1) {
+		if (connect(c_socket, (SOCKADDR*)&clientService, sizeof(clientService)) == SOCKET_ERROR) {
+
+			choice = menu(FAILURE, ip, portNumber);
+			if (1 == choice) {
+				resourcesManager(c_socket, 0);
+				continue;
+			}
+			else if (2 == choice)
+			{
+				resourcesManager(c_socket, CLEAN);
+				return EXIT;
+			}
+
+		}
+		else
+			break;
+
+	}
+	return SUCCESS;
+}
+void resourcesManager(SOCKET c_socket, int WSACleanFlag) {
+
+	if (NULL != c_socket) {
+		if (closesocket(c_socket) == SOCKET_ERROR)
+			printf("Failed to close clientSocket in resourcesManager. error %ld\n", WSAGetLastError());
+	}
+	if (CLEAN == WSACleanFlag) {
+		if (WSACleanup() == SOCKET_ERROR)
+			printf("Failed to close Winsocket in resourcesManager. error %ld\n", WSAGetLastError());
+	}
+
+
 }
