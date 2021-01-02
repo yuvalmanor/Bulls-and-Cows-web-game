@@ -7,6 +7,7 @@
 #include <string.h>
 #include "hardcodeddata.h"
 #include "stringProcessor.h"
+#include "SocketSendRecvTools.h"
 
 #define MSG_TYPE_LEN 28
 #define GUESS_LEN 5
@@ -28,7 +29,8 @@ typedef struct Message {
 
 }Message;
 
-
+Message* getMessage(SOCKET socket, int waitTime);
+int sendMessage(SOCKET socket, char* rawMessage);
 Message* messageDecoder(char* messageStr);
 int setMessageParams(char* p_restOfMessage, int numOfParams, int msgType, Message* message);
 Message* initMessage(char* messageType);

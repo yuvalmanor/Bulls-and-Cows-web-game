@@ -1,25 +1,5 @@
 #include "servicethread.h"
 
-char* mainMenu(socket) {
-	char* p_msg = "SERVER_MAIN_MENU\n";
-	TransferResult_t transResult;
-
-	transResult = SendString(&p_msg, socket);
-	if (transResult == TRNS_SUCCEEDED) {
-		return p_msg;
-	}
-	else if (transResult == TRNS_FAILED) {
-		printf("transfer failed\n");
-		//do something
-		return NULL;
-	}
-	else {
-		printf("transfer disconnected\n");
-		//do something
-		return NULL;
-	}
-}
-
 HANDLE openOrCreateFile(int *playerOne) {
 	DWORD dwDesiredAccess = 0, dwShareMode = 0, dwCreationDisposition = 0;
 	HANDLE hFile;
@@ -35,7 +15,6 @@ HANDLE openOrCreateFile(int *playerOne) {
 		FILE_ATTRIBUTE_NORMAL,
 		NULL);
 	//if it doesn't exist, create a new file and set playerOne to 1
-	printf("Last error is %d\n", GetLastError());
 	if (GetLastError() == ERROR_FILE_NOT_FOUND) {
 		dwCreationDisposition = CREATE_NEW;
 		hFile = CreateFileA(GAMESESSION_FILENAME,
@@ -46,6 +25,7 @@ HANDLE openOrCreateFile(int *playerOne) {
 			FILE_ATTRIBUTE_NORMAL,
 			NULL);
 		(*playerOne) = 1;
+		printf("A new file was created\nPlayerOne: 1\n ");
 
 	}
 	else if (INVALID_HANDLE_VALUE == hFile) {
@@ -53,6 +33,7 @@ HANDLE openOrCreateFile(int *playerOne) {
 		return INVALID_HANDLE_VALUE;
 	}
 	else {
+		printf("An existing file was opened\nPlayerOne: 0\n ");
 		(*playerOne) = 0;
 	
 	}
@@ -101,72 +82,91 @@ int writeUserNameToFile(HANDLE h_file, char* username, int playerOne, char** oth
 DWORD ServiceThread(ThreadParam* lpParam) {
 	//get thread parameters
 	ThreadParam* p_param;
+	LPCWSTR sharedFileName = (LPCWSTR)GAMESESSION_FILENAME;
 	if (NULL == lpParam) {
 		printf("Service thread can't work with NULL as parameters\n");
 		return -1;
 	}
 	p_param = (ThreadParam*)lpParam;
 	SOCKET socket = p_param->socket;
-	int offset = p_param->offset, p_playerOne;
+	int offset = p_param->offset, playerOne, sent;
 	char* username = NULL, otherUsername = NULL;
 	char* p_msg = NULL;
 	Message* message = NULL;
-	TransferResult_t transResult;
 	HANDLE sharedFile = NULL;
+	TransferResult_t transResult;
 	printf("Waiting for username from client\n");
 		//Get username from client
-	transResult = ReceiveString(&p_msg, socket);
-	if (transResult == TRNS_FAILED) {
-		printf("transfer failed\n"); 
-		//do something
+	message = getMessage(socket, 15); //Change waitTime to a DEFINED number 
+	if (message == NULL) {
+		printf("couldn't get username from client. Quitting\n");
+		return -1;
 	}
-	else if (transResult == TRNS_DISCONNECTED) {
-		printf("transfer disconnected\n");
-		//do something
+	if (strcmp((message->type), "CLIENT_REQUEST") != 0)  {
+		printf("message type is invalid, %s instead of CLIENT_REQUEST\n", message->type);
+		free(message);
+		return -1;
 	}
-		printf("got this message: %s", p_msg);
-		message = messageDecoder(p_msg);
-		if (message == NULL) {
-			printf("There was a problem with processing the message\n");
-			//free things
-			return -1;
-		}
-		if (strcmp((message->type), "CLIENT_REQUEST") != 0)  {
-			printf("message type is invalid, %s instead of CLIENT_REQUEST\n", message->type);
-			//free things
-			return -1;
-		}
-		username = message->username;
-		free(message); message = NULL;
-		printf("Username is %s\n", username);
+	username = message->username;
+	free(message); message = NULL;
+	printf("Username is %s\n", username);
 
 	while (1) {
 		//Go into critical zone
 		//open or create the GameSession file and check if this is player one or not
-		sharedFile = openOrCreateFile(&p_playerOne);
+		sharedFile = openOrCreateFile(&playerOne);
 		if (sharedFile == INVALID_HANDLE_VALUE) {
 			//do stuff cuz this thread is going down
 			return -1;
 		}
-		printf("PlayerOne: %d\n", p_playerOne);
 		//Write the username to the file and increment the (global) number of players
 		
 		//leave critical zone
 		printf("client %d username is %s\n", offset, username);
 		//<------Main menu------->
-		p_msg = "SERVER_MAIN_MENU\n";
+		if ((sent = sendMessage(socket, "SERVER_MAIN_MENU\n")) != 1) {
+			//leaveGame()
+			if (sent) {
+				//disconnected
+				break;
+			}//sent failed
+			continue;
+		}
+		//<----Player main menu response---->
+		message = getMessage(socket, 15);
+		if (message == NULL) {//message didn't make it
+			printf("No response from user in Main menu\n");
+			if (playerOne) { //If this is player one, delete the file
+				//leaveGame() <- delete file if needed, close file handle decrement players.
+				if (!DeleteFileW(sharedFileName)) { // Had problems deleteing the file
+					printf("Trouble deleting %s file. Quitting\n", GAMESESSION_FILENAME);
+					break;
+				}
+			} //go back to main menu
+			continue;
+		}
+		if (strcmp((message->type), "CLIENT_DISCONNECT") == 0) { //Player chose 2
+			free(message);
+			if (!DeleteFileW(sharedFileName)) { // Had problems deleteing the file
+				printf("Trouble deleting %s file. Quitting\n", GAMESESSION_FILENAME);
+				break;
+			//leaveGame()
+			break;
+		}
+		else if (strcmp((message->type), "CLIENT_VERSUS") != 0) { //invalid message type
+			printf("message type is invalid, %s instead of CLIENT_VERSUS\n", message->type);
+			free(message); 
+			if (!DeleteFileW(sharedFileName)) { // Had problems deleteing the file
+				printf("Trouble deleting %s file. Quitting\n", GAMESESSION_FILENAME);
+				break;
+			//leaveGame()
+			break; //Is this what we want?
+		}
+		free(message); message = NULL;
+		// <------- Get player's secretNum ----->
 
-		transResult = SendString(&p_msg, socket);
-		if (transResult == TRNS_FAILED) {
-			printf("transfer %s failed\n", p_msg);
-			//handle a failed transfer (Try again)?
-			return NULL;
-		}
-		else if (transResult == TRNS_DISCONNECTED) {
-			printf("transfer disconnected\n");
-			//do something
-			return NULL;
-		}
+
+
 
 				
 			
@@ -179,9 +179,7 @@ DWORD ServiceThread(ThreadParam* lpParam) {
 	
 	} // !while(1)
 
-
-	printf("Im the server thread.\n");
-	//communicate with client.
+	printf("leaving game.\n");
 	closesocket(socket);
 	return 0;
 

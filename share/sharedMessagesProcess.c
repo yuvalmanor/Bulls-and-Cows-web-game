@@ -1,5 +1,54 @@
 #include "sharedMessagesProcess.h"
 
+Message* getMessage(SOCKET socket, int waitTime) {
+	TransferResult_t transResult;
+	char* p_rawMessage = NULL;
+	Message* message = NULL;
+	transResult = ReceiveString(&p_rawMessage, socket, waitTime);
+	if (transResult == TRNS_FAILED) {
+		printf("transfer failed\n");
+		return NULL;
+	}
+	else if (transResult == TRNS_DISCONNECTED) {
+		printf("transfer disconnected\n");
+		if (NULL != p_rawMessage) {
+			free(p_rawMessage);
+		}
+		return NULL;
+	}
+	else if (transResult == TRNS_TIMEOUT) {
+		printf("Transfer timed out\n");
+		return NULL;
+		}
+	message = messageDecoder(p_rawMessage);
+	if (message == NULL) {
+		printf("There was a problem with processing the message\n");
+		free(p_rawMessage);
+		return NULL;
+	}
+	free(p_rawMessage);
+	return message;
+}
+
+int sendMessage(SOCKET socket, char* rawMessage) {
+	char* p_rawMessage = rawMessage;
+	TransferResult_t transResult;
+
+	transResult = SendString(&p_rawMessage, socket);
+	if (transResult == TRNS_SUCCEEDED) {
+		return 1;
+	}
+	if (transResult == TRNS_FAILED) {
+		printf("transfer %s failed\n", p_rawMessage);
+		return 0;
+	}
+	else if (transResult == TRNS_DISCONNECTED) {
+		printf("transfer disconnected\n");
+		return -1;
+	}
+
+}
+
 Message* messageDecoder(char* messageStr){
 	char* p_messageCpy = NULL, * messageType = NULL, * p_restOfMessage = NULL;
 	int msgTypeInt=-1, numOfParams=-1;

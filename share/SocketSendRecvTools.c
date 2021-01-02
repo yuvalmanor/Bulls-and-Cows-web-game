@@ -101,7 +101,7 @@ TransferResult_t ReceiveBuffer( char* OutputBuffer, int BytesToReceive, SOCKET s
 
 TransferResult_t ReceiveString( char** OutputStrPtr, SOCKET sd, int timeOut )
 {
-	/* Recv the the request to the server on socket sd */
+	/* Recv the request to the server on socket sd */
 	int TotalStringSizeInBytes;
 	TransferResult_t RecvRes;
 	char* StrBuffer = NULL;
