@@ -13,15 +13,22 @@
 #define CLEAN 1
 #define EXIT 0
 #define START_AGAIN 2
+#define CONTINUE 4
 
-typedef enum { MAIN, FAILURE, DENIED } ;
+typedef enum { MAIN, FAILURE, DENIED } menuStatus;
+typedef enum { MID_GAME, WIN, TIE } gameStatus;
 
 int playGame(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* ip, int portNumber);
+int setup(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* ip, int portNumber);
+int start(SOCKET c_socket);
+int GameIsOn(SOCKET c_socket);
 int playerChoice();
 char* prepareMsg(const char* msgType, char* str);
-int setup(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* ip, int portNumber);
 int checkTRNSCode(int TRNSCode, char* ip, int portNumber, SOCKET c_socket, SOCKADDR_IN clientService);
 int menu(int menu, char* ip, int portNumber);
-
-
+char* chooseNumber();
+int opponentQuit(char* message);
+void gameResults(Message* message, int status);
+int makeConnection(SOCKET c_socket, SOCKADDR_IN clientService, char* ip, int portNumber);
+void resourcesManager(SOCKET clientSocket, int WSACleanFlag);
 #endif // !BULLSANDCOWS_H
