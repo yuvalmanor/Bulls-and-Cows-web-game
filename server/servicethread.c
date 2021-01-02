@@ -130,9 +130,10 @@ DWORD ServiceThread(ThreadParam* lpParam) {
 	char* p_msg = NULL;
 	Message* message = NULL;
 	HANDLE h_sharedFile = NULL;
+
 	printf("Waiting for username from client\n");
-		//Get username from client
-	transferred = getMessage(socket, &message, 15); //Change waitTime to a DEFINED number 
+		//<------Get username from client----->
+	transferred = getMessage(socket, &message, 150000); //Change waitTime to a DEFINED number 
 	if (transferred != 1) {
 		printf("couldn't get username from client. Quitting\n");
 		return -1;
@@ -164,7 +165,7 @@ DWORD ServiceThread(ThreadParam* lpParam) {
 		(*p_players)++;
 		//leave critical zone
 		CloseHandle(h_sharedFile);
-		printf("I am %s\nOther player is %s\n", username, otherUsername);
+
 		//<------Main menu------->
 		if ((transferred = sendMessage(socket, "SERVER_MAIN_MENU\n")) != 1) {
 			//leaveGame()
@@ -232,8 +233,11 @@ DWORD ServiceThread(ThreadParam* lpParam) {
 			}
 			//release event
 		}
+		printf("I am %s\nOther player is %s\n", username, otherUsername);
 		// <------- Get player's secretNum ----->
 
+		transferred = getMessage(socket, &message, 15);
+		free(message);
 
 
 

@@ -39,11 +39,6 @@ int clientManager(char* ip, int portNumber, char* username) {
 		resourcesManager(c_socket, CLEAN);
 		return EXIT;
 	}
-	/*<---send server username--->*/
-	if (SUCCESS != setup(username, c_socket, clientService, ip, portNumber)) {
-		resourcesManager(c_socket, CLEAN);
-		return EXIT;
-	}
 	
 	playGame(username, c_socket, clientService, ip, portNumber);
 

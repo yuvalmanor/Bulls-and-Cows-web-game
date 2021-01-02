@@ -48,10 +48,6 @@ int playGame(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* i
 		
 
 	}
-
-
-	
-
 	
 	return 0;
 }
@@ -146,6 +142,7 @@ int GameIsOn(SOCKET c_socket) {
 	printf("Choose your 4 digits:\n");
 	p_userChoice=chooseNumber();
 	p_clientMsg = prepareMsg("CLIENT_SETUP:", p_userChoice);
+	free(p_userChoice);
 	if (NULL == p_clientMsg) return NOT_SUCCESS;
 	status= SendString(p_clientMsg, c_socket);
 	free(p_clientMsg);
@@ -161,6 +158,7 @@ int GameIsOn(SOCKET c_socket) {
 		printf("Choose your guess:\n");
 		p_guess = chooseNumber();
 		p_clientMsg = prepareMsg("CLIENT_PLAYER_MOVE:", p_guess);
+		free(p_guess);
 		if (NULL == p_clientMsg) return NOT_SUCCESS;
 		status = SendString(p_clientMsg, c_socket);
 		free(p_clientMsg);
@@ -222,7 +220,6 @@ char* prepareMsg(const char* msgType, char* str) {
 	strcpy_s(message, messageLen, msgType);
 	if (NULL != str) {
 		strcat_s(message, messageLen, str);
-		free(str);
 	}
 	strcat_s(message, messageLen, "\n");
 	return message;
