@@ -67,12 +67,12 @@ TransferResult_t SendString( const char *Str, SOCKET sd )
 
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 
-TransferResult_t ReceiveBuffer( char* OutputBuffer, int BytesToReceive, SOCKET sd )
+TransferResult_t ReceiveBuffer( char* OutputBuffer, int BytesToReceive, SOCKET sd, int timeOut)
 {
 	char* CurPlacePtr = OutputBuffer;
 	int BytesJustTransferred;
 	int RemainingBytesToReceive = BytesToReceive;
-	struct timeval waitTime = { 15, 0 };
+	struct timeval waitTime = { timeOut, 0 };
 	
 	setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, (struct timeval*)&waitTime, sizeof(struct timeval));
 	while ( RemainingBytesToReceive > 0 )  
@@ -99,7 +99,7 @@ TransferResult_t ReceiveBuffer( char* OutputBuffer, int BytesToReceive, SOCKET s
 
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 
-TransferResult_t ReceiveString( char** OutputStrPtr, SOCKET sd )
+TransferResult_t ReceiveString( char** OutputStrPtr, SOCKET sd, int timeOut )
 {
 	/* Recv the the request to the server on socket sd */
 	int TotalStringSizeInBytes;
@@ -121,7 +121,7 @@ TransferResult_t ReceiveString( char** OutputStrPtr, SOCKET sd )
 	RecvRes = ReceiveBuffer( 
 		(char *)( &TotalStringSizeInBytes ),
 		(int)( sizeof(TotalStringSizeInBytes) ), // 4 bytes
-		sd );
+		sd, timeOut );
 
 	if ( RecvRes != TRNS_SUCCEEDED ) return RecvRes;
 
@@ -133,7 +133,7 @@ TransferResult_t ReceiveString( char** OutputStrPtr, SOCKET sd )
 	RecvRes = ReceiveBuffer( 
 		(char *)( StrBuffer ),
 		(int)( TotalStringSizeInBytes), 
-		sd );
+		sd, timeOut );
 
 	if ( RecvRes == TRNS_SUCCEEDED ) 
 		{ *OutputStrPtr = StrBuffer; }

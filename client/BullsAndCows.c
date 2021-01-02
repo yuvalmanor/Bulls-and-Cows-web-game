@@ -11,7 +11,7 @@ int playGame(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* i
 			resourcesManager(c_socket, CLEAN);
 			return EXIT;
 		}
-		res = ReceiveString(&recvMsg, c_socket);
+		res = ReceiveString(&recvMsg, c_socket,15);
 		/*HERE SHOULD CHECK IF TRNS_FAILED OR NOT AND TRNS_DISCONNECTED AND
 		HANDLE IT, ALSO WHAT ABOUT TIMEOUT*/
 		if (TRNS_SUCCEEDED != res) {
@@ -26,7 +26,7 @@ int playGame(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* i
 			return NOT_SUCCESS;
 		}
 		if (strcmp(serverMsg->type, "SERVER_MAIN_MENU")) {
-			printf("Message invalid. This is the message recived: %s", serverMsg);
+			printf("Message invalid. This is the message recived: %s", serverMsg->type);
 			free(serverMsg);
 			return NOT_SUCCESS;
 		}
@@ -39,9 +39,10 @@ int playGame(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* i
 			choice = menu(MAIN, ip, 0);*/
 		/*
 		if (1==choice){
-			client send CLIENT_VERSUS
-			client recive message from server - need to wait 30 sec
-			if (serverMsg==SERVER_INVITE){ 
+			start();
+			#client send CLIENT_VERSUS
+			#client recive message from server - need to wait 30 sec
+			#if (serverMsg==SERVER_INVITE){ 
 				printf("Game is on !\n")
 				server send SERVER_SETUP_REQUEST ---->need to check if the message is SERVER_OPPONENT_QUIT
 				printf("Choose your 4 digits:\n")
@@ -92,7 +93,7 @@ int start(SOCKET c_socket, SOCKADDR_IN clientService, char* ip, int portNumber) 
 	return NOT_SUCCESS;
 	}	*/
 	//after send, should free(clientRequest)?
-	res = ReceiveString(&recvMsg, c_socket); //NEED TO CHANGE WAIT_TIME TO 30 SEC
+	res = ReceiveString(&recvMsg, c_socket, 30);
 	if (TRNS_SUCCEEDED != res) {
 		if (SUCCESS != checkTRNSCode(res, ip, portNumber, c_socket, clientService))
 			return NOT_SUCCESS;
@@ -114,6 +115,50 @@ int start(SOCKET c_socket, SOCKADDR_IN clientService, char* ip, int portNumber) 
 	}
 	
 
+}
+int GameIsOn(SOCKET c_socket, SOCKADDR_IN clientService, char* ip, int portNumber) {
+	char* clientRequest = NULL, * recvMsg = NULL;
+	int res;
+	Message* serverMsg = NULL;
+
+	printf("Game is on !\n");
+	res = ReceiveString(&recvMsg, c_socket, 15);
+	if (TRNS_SUCCEEDED != res) {
+		if (SUCCESS != checkTRNSCode(res, ip, portNumber, c_socket, clientService))
+			return NOT_SUCCESS;
+		else
+			return START_AGAIN;
+	}
+	serverMsg = messageDecoder(recvMsg);
+	if (NULL == serverMsg) {
+		free(serverMsg);
+		return NOT_SUCCESS;
+	}
+	if (!strcmp(serverMsg->type, "SERVER_OPPONENT_QUIT")) {
+		printf("Opponent quit.\n");
+		free(serverMsg);
+		return START_AGAIN;
+	}
+	//<--- if message is SERVER_SETUP_REQUEST --->
+	printf("Choose your 4 digits:\n");
+	//takeGuess();
+
+	/*printf("Game is on !\n")
+		#server send SERVER_SETUP_REQUEST---- > need to check if the message is SERVER_OPPONENT_QUIT
+		printf("Choose your 4 digits:\n")
+		player need to choose 4 digits
+		client send to server CLIENT_SETUP
+		while (message->type != SERVER_WIN || message->type != SERVER_DRAW)
+			server sent SERVER_PLAYER_MOVE_REQUEST---- > need to check if the message is SERVER_OPPONENT_QUIT
+			printf("Choose your guess:\n")
+			client send to server CLIENT_PLAYER_MOVE
+			server send SERVER_GAME_RESULTS---- > need to check if the message is SERVER_OPPONENT_QUIT
+			printf("Bulls: <bulls>\n
+				Cows: <cows>\n
+				<opponenr_username> played: <opponent_move>\n")
+				if (serverMsg == SERVER_WIN)->print winner message to user, continue; ---- > need to check if the message is SERVER_OPPONENT_QUIT
+					if (serverMsg == SERVER_DRAW)->print draw message to user, continue; ---- > need to check if the message is SERVER_OPPONENT_QUIT
+		}*/
 }
 int playerChoice() {
 	char option;
@@ -164,7 +209,7 @@ int setup(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* ip, 
 		return NOT_SUCCESS;
 		}	*/
 		//after send, should free(clientRequest)?
-		res = ReceiveString(&recvMsg, c_socket);
+		res = ReceiveString(&recvMsg, c_socket, 15);
 		if (TRNS_SUCCEEDED != res) {
 			if (SUCCESS != checkTRNSCode(res, ip, portNumber, c_socket, clientService))
 				return NOT_SUCCESS;
@@ -233,7 +278,7 @@ int menu(int menu, char* ip, int portNumber) {
 		printf("2. Exit\n");
 		break;
 	case DENIED:
-		printf("Server on %s:%d denied the connection request.\n");
+		printf("Server on %s:%d denied the connection request.\n",ip,portNumber);
 		printf("Choose what to do next:\n");
 		printf("1. Try to reconnect\n");
 		printf("2. Exit\n");
@@ -242,5 +287,34 @@ int menu(int menu, char* ip, int portNumber) {
 
 	choice = playerChoice();
 	return choice;
+
+}
+char* takeGuess() {
+	char* guess = NULL;
+	int i = 0;
+
+	if (NULL == (guess = malloc(PAGE_SIZE))) {
+		printf("Fatal error: memory allocation failed (prepareMsg).\n");
+		return NULL;
+	}
+	
+	while (1) {
+		fgets(guess, PAGE_SIZE, stdin);
+		if (4 != strlen(guess)) {
+			printf("Too many digits. Try again.\n");
+			continue;
+		}
+		for (i = 0; i < 4; i++) {
+			if (!isdigit(guess[i])) {
+				printf("Please enter only digits. Try again.\n");
+				continue;
+			}
+		}
+	}
+	while (4 != strlen(guess)) {
+		printf("Too many digits. Try again.\n");
+		fgets(guess, PAGE_SIZE, stdin);
+	}
+	
 
 }
