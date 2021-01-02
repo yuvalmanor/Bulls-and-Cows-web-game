@@ -15,5 +15,6 @@ int main(int argc, char* argv[]) {
 		return NOT_SUCCESS;
 	}
 	clientManager(argv[1], portNumber, argv[3]);
+	
 	return 0;
  }
