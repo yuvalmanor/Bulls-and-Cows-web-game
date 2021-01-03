@@ -27,7 +27,7 @@ ThreadParam* initThreadParam(SOCKET socket, int index, int* players) {
 			return NULL;
 		}
 		p_threadparams->socket = socket;
-		p_threadparams->offset = index*6; // 6 is arbitrary, we'll decide on the number later
+		p_threadparams->offset = 6; // This field is not necessary
 		p_threadparams->p_players = players;
 		return p_threadparams;
 }
@@ -143,25 +143,25 @@ serverManager(int portNumber){
 		}
 		if (index == MAX_NUM_OF_PLAYERS) //maximum number of clients are connected
 		{
-			threadParams[index] = AcceptSocket; //The serverIsFUll thread is responisble for closing this socket
+			threadParams[index]->socket = AcceptSocket; //The serverIsFUll thread is responisble for closing this socket
 			threadHandles[index] = CreateThread(
 				NULL,
 				0,
 				(LPTHREAD_START_ROUTINE)ServerFullThread, //This type of thread lets the client know there's no room
 														//for another thread and then disconnects from it.
-				&(threadParams[index]),
+				threadParams[index],
 				0,
 				NULL
 			);
 		}
 		else //If there is room for the client in the game
 		{
-			threadParams[index] = AcceptSocket; //The service thread is responisble for closing this socket
+			threadParams[index]->socket = AcceptSocket; //The service thread is responisble for closing this socket
 			threadHandles[index] = CreateThread(
 				NULL,
 				0,
 				(LPTHREAD_START_ROUTINE)ServiceThread,
-				&(threadParams[index]),
+				threadParams[index],
 				0,
 				NULL
 			);

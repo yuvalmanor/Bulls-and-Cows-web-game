@@ -19,6 +19,7 @@ int getMessage(SOCKET socket, Message** message, int waitTime) {
 		printf("Transfer timed out\n");
 		return TRNS_TIMEOUT;
 		}
+	printf("(getMessage) Raw message is: %s", p_rawMessage);
 	(*message) = messageDecoder(p_rawMessage);
 	if (*message == NULL) {
 		printf("There was a problem with processing the message\n");
@@ -76,7 +77,7 @@ Message* messageDecoder(char* messageStr){
 			return NULL;
 		}
 		message = initMessage(messageType);
-		printf("type:%s", message->type);
+		printf("(messageDecoder)type:%s\n", message->type);
 		free(p_messageCpy);
 		return message;
 	}

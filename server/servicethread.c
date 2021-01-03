@@ -114,7 +114,7 @@ void leaveGame(SOCKET socket, int* p_players, HANDLE h_sharedFile, HANDLE fileEv
 
 }
 
-DWORD ServiceThread(ThreadParam* lpParam) {
+DWORD ServiceThread(void* lpParam) {
 	//get thread parameters
 	ThreadParam* p_param;
 	LPCWSTR sharedFileName = GAMESESSION_FILENAME;
@@ -125,11 +125,12 @@ DWORD ServiceThread(ThreadParam* lpParam) {
 	p_param = (ThreadParam*)lpParam;
 	SOCKET socket = p_param->socket;
 	int offset = p_param->offset, playerOne, transferred, retVal;
-	int* p_players = p_param->p_players;
+	int *p_players = p_param->p_players;
 	char* username = NULL, *otherUsername = NULL;
 	char* p_msg = NULL;
 	Message* message = NULL;
 	HANDLE h_sharedFile = NULL;
+	TransferResult_t transResult;
 
 	printf("Waiting for username from client\n");
 		//<------Get username from client----->
@@ -146,7 +147,21 @@ DWORD ServiceThread(ThreadParam* lpParam) {
 	username = message->username;
 	free(message); message = NULL;
 	printf("Username is %s\n", username);
-
+	printf("sending SERVER_APPROVED\n");
+	char* p_rawMessage = "SERVER_APPROVED\n";
+	transResult = SendString(p_rawMessage, socket);
+	if (transResult != TRNS_SUCCEEDED) {
+		return 1;
+	}
+	if (transResult == TRNS_FAILED) {
+		printf("transfer %s failed\n", p_rawMessage);
+		return 0;
+	}
+	else if (transResult == TRNS_DISCONNECTED) {
+		printf("transfer disconnected\n");
+		return -1;
+	}
+	printf("SERVER_APPROVED sent\n");
 	while (1) {
 		//Go into critical zone
 		//open or create the GameSession file and check if this is player one or not
@@ -167,17 +182,22 @@ DWORD ServiceThread(ThreadParam* lpParam) {
 		CloseHandle(h_sharedFile);
 
 		//<------Main menu------->
-		if ((transferred = sendMessage(socket, "SERVER_MAIN_MENU\n")) != 1) {
+		printf("sending SERVER_MAIN_MENU\n");
+		char* p_rawMessage = "SERVER_MAIN_MENU\n";
+		transResult = SendString(p_rawMessage, socket);
+		if (transResult != TRNS_SUCCEEDED) {
 			//leaveGame()
 			(*p_players)--;
-			if (transferred) {
+			if (TRNS_SUCCEEDED) {
 				//disconnected
 				break;
 			}//sent failed
-			continue;
+			break; //change to continue
 		}
+		printf("SERVER_MAIN_MENU sent\n");
 		//<----Player main menu response---->
-		transferred = getMessage(socket, &message, 15);
+		printf("Getting response from client\n");
+		transferred = getMessage(socket, &message, 150000);
 		if (transferred != 1) {
 			if (transferred){
 				printf("No response from user in Main menu\n");
@@ -189,8 +209,9 @@ DWORD ServiceThread(ThreadParam* lpParam) {
 					}
 				}
 			} //go back to main menu
-			continue;
+			break; //should be continue;
 		}
+		printf("response is %\n", message->type);
 		if (strcmp((message->type), "CLIENT_DISCONNECT") == 0) { //Player chose 2
 			free(message);
 			if (playerOne) {

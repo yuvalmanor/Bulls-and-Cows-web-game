@@ -10,9 +10,9 @@ int playGame(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* i
 		if (SUCCESS != setup(username, c_socket, clientService, ip, portNumber)) {
 			return EXIT;
 		}
-		status = getMessage(c_socket, &p_serverMsg, 15);
-		status = checkTRNSCode(status, ip, portNumber, c_socket, clientService);
-		if (TRNS_SUCCEEDED != status) {
+		printf("Getting SERVER_MAIN_MENU\n");
+		status = getMessage(c_socket, &p_serverMsg, 150000);
+		if (TRNS_SUCCEEDED != status) { //Yuval, check this is ok
 			if (SUCCESS != checkTRNSCode(status, ip, portNumber, c_socket, clientService))
 				return NOT_SUCCESS;
 			else
@@ -23,6 +23,7 @@ int playGame(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* i
 			free(p_serverMsg);
 			return NOT_SUCCESS;
 		}
+		printf("Got SERVER_MAIN_MENU\n");
 		free(p_serverMsg);
 		while (1) {
 			choice = menu(MAIN, ip, 0);
@@ -45,8 +46,6 @@ int playGame(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* i
 				return NOT_SUCCESS;
 			}
 		}
-		
-
 	}
 	
 	return 0;
@@ -63,17 +62,21 @@ int setup(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* ip, 
 
 		status = SendString(p_clientMsg, c_socket);
 		free(p_clientMsg);
-		status = checkTRNSCode(status, ip, portNumber, c_socket, clientService);
+		if (status != TRNS_SUCCEEDED) { //Yuval, check this is ok
+			status = checkTRNSCode(status, ip, portNumber, c_socket, clientService);
+		}
 		if (EXIT == status) return EXIT;
 		else if (NOT_SUCCESS == status) return NOT_SUCCESS;
-		status = getMessage(c_socket, &p_serverMsg, 15);
+		printf("CLIENT_REQUEST sent\nHoping to get SERVER_APPROVED\n");
+		status = getMessage(c_socket, &p_serverMsg, 150000);
 		if (TRNS_SUCCEEDED != status) {
 			if (SUCCESS != checkTRNSCode(status, ip, portNumber, c_socket, clientService))
 				return NOT_SUCCESS;
 			else
 				continue;
 		}
-		if (!strcmp(p_serverMsg->type, "SERVER_APROVED")) {
+		printf("Got message from server: %s\n", p_serverMsg->type);
+		if (!strcmp(p_serverMsg->type, "SERVER_APPROVED")) {
 			free(p_serverMsg);
 			return SUCCESS;
 		}

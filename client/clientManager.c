@@ -39,6 +39,7 @@ int clientManager(char* ip, int portNumber, char* username) {
 		resourcesManager(c_socket, CLEAN);
 		return EXIT;
 	}
+	printf("Connected to %s:%d\n", ip, portNumber);
 	
 	playGame(username, c_socket, clientService, ip, portNumber);
 
