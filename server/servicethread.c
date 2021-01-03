@@ -124,9 +124,9 @@ DWORD ServiceThread(void* lpParam) {
 	}
 	p_param = (ThreadParam*)lpParam;
 	SOCKET socket = p_param->socket;
-	int offset = p_param->offset, playerOne, transferred, retVal;
+	int playerOne, transferred, retVal;
 	int *p_players = p_param->p_players;
-	char* username = NULL, *otherUsername = NULL;
+	char* username = NULL, * otherUsername = NULL, *secretNum=NULL, *otherSecretNum=NULL;
 	char* p_msg = NULL;
 	Message* message = NULL;
 	HANDLE h_sharedFile = NULL;
@@ -134,7 +134,7 @@ DWORD ServiceThread(void* lpParam) {
 
 	printf("Waiting for username from client\n");
 		//<------Get username from client----->
-	transferred = getMessage(socket, &message, 150000); //Change waitTime to a DEFINED number 
+	transferred = getMessage(socket, &message, 15000); //Change waitTime to a DEFINED number 
 	if (transferred != 1) {
 		printf("couldn't get username from client. Quitting\n");
 		return -1;
@@ -197,7 +197,7 @@ DWORD ServiceThread(void* lpParam) {
 		printf("SERVER_MAIN_MENU sent\n");
 		//<----Player main menu response---->
 		printf("Getting response from client\n");
-		transferred = getMessage(socket, &message, 150000);
+		transferred = getMessage(socket, &message, 15000);
 		if (transferred != 1) {
 			if (transferred){
 				printf("No response from user in Main menu\n");
@@ -215,6 +215,7 @@ DWORD ServiceThread(void* lpParam) {
 		if (strcmp((message->type), "CLIENT_DISCONNECT") == 0) { //Player chose 2
 			free(message);
 			if (playerOne) {
+				printf("Delete the file!\n");
 				if (!DeleteFileW(sharedFileName)) { // Had problems deleteing the file
 					printf("Trouble deleting %s file. Quitting\n", GAMESESSION_FILENAME);
 				}
@@ -227,6 +228,7 @@ DWORD ServiceThread(void* lpParam) {
 			printf("message type %s is not relevant here \n", message->type);
 			free(message); 
 			if (playerOne) {
+				printf("Delete the file!\n");
 				if (!DeleteFileW(sharedFileName)) { // Had problems deleteing the file
 					printf("Trouble deleting %s file. Quitting\n", GAMESESSION_FILENAME);
 					break;
@@ -257,7 +259,7 @@ DWORD ServiceThread(void* lpParam) {
 		printf("I am %s\nOther player is %s\n", username, otherUsername);
 		// <------- Get player's secretNum ----->
 
-		transferred = getMessage(socket, &message, 15);
+		transferred = getMessage(socket, &message, 15000);
 		free(message);
 
 
@@ -304,14 +306,15 @@ LOOP:
 	so we should check if the messages are SERVER_OPPONENT_QUIT
 
 	game on!
+	get the number from the client
+	validate the message is CLIENT_SETUP (client should validate the value is good)
+	if (not client disconnected)
+	if (not players<2)
+	write secretNum to the file (no need for mutex), acording to playerOne or !playerOne
+	wait for other player to also write their secretNum <---------- IMPORTANT
 	while()
-		get the number from the client
-		validate the message is CLIENT_SETUP (client should validate the value is good)
-		if so break;
-	write it to the file (no need for mutex)
-	while()
-		read value of the other player, if it's valid, save it and break (mutex?)
-		otherwise continue
+		get otherSecretNum from file
+
 	send the client a CLIENT_PLAYER_MOVE
 	validate sent
 	while()

@@ -11,7 +11,7 @@ int playGame(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* i
 			return EXIT;
 		}
 		printf("Getting SERVER_MAIN_MENU\n");
-		status = getMessage(c_socket, &p_serverMsg, 150000);
+		status = getMessage(c_socket, &p_serverMsg, 15000);
 		if (TRNS_SUCCEEDED != status) { //Yuval, check this is ok
 			if (SUCCESS != checkTRNSCode(status, ip, portNumber, c_socket, clientService))
 				return NOT_SUCCESS;
@@ -28,7 +28,7 @@ int playGame(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* i
 		while (1) {
 			choice = menu(MAIN, ip, 0);
 			if (1 == choice) {
-				status = start(c_socket);
+				status = start(c_socket); //
 				if (NOT_SUCCESS == status)
 					return NOT_SUCCESS;
 				else if (SUCCESS == status)
@@ -68,7 +68,7 @@ int setup(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* ip, 
 		if (EXIT == status) return EXIT;
 		else if (NOT_SUCCESS == status) return NOT_SUCCESS;
 		printf("CLIENT_REQUEST sent\nHoping to get SERVER_APPROVED\n");
-		status = getMessage(c_socket, &p_serverMsg, 150000);
+		status = getMessage(c_socket, &p_serverMsg, 15000);
 		if (TRNS_SUCCEEDED != status) {
 			if (SUCCESS != checkTRNSCode(status, ip, portNumber, c_socket, clientService))
 				return NOT_SUCCESS;
@@ -108,7 +108,7 @@ int start(SOCKET c_socket) {
 	free(p_clientMsg);
 	if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT==status) return START_AGAIN;
 	else if (TRNS_FAILED == status) return NOT_SUCCESS;
-	status = getMessage(c_socket, &p_serverMsg, 30);
+	status = getMessage(c_socket, &p_serverMsg, 30000);
 	if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return START_AGAIN;
 	else if (TRNS_FAILED == status) return NOT_SUCCESS;
 	if (!strcmp(p_serverMsg->type, "SERVER_INVITE")) {
@@ -131,7 +131,7 @@ int GameIsOn(SOCKET c_socket) {
 	Message* p_serverMsg = NULL;
 
 	printf("Game is on !\n");
-	status = getMessage(c_socket, &p_serverMsg, 15);
+	status = getMessage(c_socket, &p_serverMsg, 15000);
 	if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return START_AGAIN;
 	else if (TRNS_FAILED == status) return NOT_SUCCESS;
 	if (strcmp(p_serverMsg->type, "SERVER_SETUP_REQUEST")) {
@@ -151,7 +151,7 @@ int GameIsOn(SOCKET c_socket) {
 	free(p_clientMsg);
 	if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status)return START_AGAIN;
 	else if (TRNS_FAILED == status) return NOT_SUCCESS;
-	status = getMessage(c_socket, &p_serverMsg, 15);
+	status = getMessage(c_socket, &p_serverMsg, 15000);
 	if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return START_AGAIN;
 	else if (TRNS_FAILED == status) return NOT_SUCCESS;
 
@@ -168,7 +168,7 @@ int GameIsOn(SOCKET c_socket) {
 		if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status)return START_AGAIN;
 		else if (TRNS_FAILED == status) return NOT_SUCCESS;
 		free(p_serverMsg);
-		status = getMessage(c_socket, &p_serverMsg, 15);
+		status = getMessage(c_socket, &p_serverMsg, 15000);
 		if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return START_AGAIN;
 		else if (TRNS_FAILED == status) return NOT_SUCCESS;
 		if (START_AGAIN == opponentQuit(p_serverMsg->type)) {
@@ -215,7 +215,13 @@ int playerChoice() {
 }
 char* prepareMsg(const char* msgType, char* str) {
 	char* message = NULL;
-	int messageLen = strlen(msgType) + strlen(str) + 2; //+2 for \n and \0
+	int messageLen = -1;
+	if (str != NULL) {
+		messageLen = strlen(msgType) + strlen(str) + 2; //+2 for \n and \0
+	}
+	else
+		messageLen = strlen(msgType) + 2; //+2 for \n and \0
+	
 	if (NULL == (message = malloc(messageLen))) {
 		printf("Fatal error: memory allocation failed (prepareMsg).\n");
 		return NULL;
