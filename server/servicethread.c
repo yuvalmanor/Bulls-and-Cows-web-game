@@ -81,7 +81,7 @@ int writeUserNameToFile(HANDLE h_file, char* username, int playerOne, char** oth
 		return 1;
 }
 
-int getPlayer2Name(HANDLE h_sharedFile, char* username, char** otherUsername) {
+int getPlayer2Name(HANDLE h_sharedFile, char* username, char** otherUsername) { //change to open handle and close it
 	DWORD filePointer, dwBytesRead;
 	int usernameLen = (int)strlen(username); char* buffer;
 
@@ -285,25 +285,55 @@ DWORD ServiceThread(void* lpParam) {
 //and stuff to free and frees things according to the need.
 
 /*
+threadRetVal = 0;
 get first message from client
 validate the message
-username is <- message->username
+username = message->username
+send client SERVER_APPROVED
 
-LOOP:
-	trying to start the game
-	open file or create it
+down(lockEvent)
+(*p_players)++
+release(lockEvent)
+
+LOOP:{
+	Send client MAIN_MENU
+	getMessage()
+	if message is not CLIENT_VERSUS -> break;
+	down(lockEvent) (go into danger zone)
+	if (*p_players != 2){
+		release(lockEvent);
+		sendMessage(SERVER_NO_OPPONENTS)
+		continue; //go back to main_menu
+		}
+	openOrCreateFile();
 	validate opening of file
-	write the username into the file, increment the number of players
-	send main_menu to client
-	validate message sent
-	get response from client
-	create Message, validate it
-	if quit - free stuff and quit
-	if continue -
-	if 2 players, get the other player's username, send client INVITATION and otherUsername
-	if 1 player, close the file, send NO_OPPONENT and go back to the beginning of the loop
-	from this moment on, if the other player disconnects, close the file (and maybe free memory) and go back to the beginning of the loop
-	so we should check if the messages are SERVER_OPPONENT_QUIT
+	if created new -> playerOne = 1
+	else if opened an existing file -> playerOne = 0
+	if not playerOne{
+		read otherUsername from the file
+		release(syncEvent)
+	}
+	write the username into the file
+	closeHandle(file)
+	release(lockEvent)
+	if (playerOne){
+		waitcode = waitForSingleObject(syncEvent, 30 sec)
+		if waitcode != 0 (didn't work)
+				deleteFile(file)
+			if waitcode is TIMEDOUT:
+				send client SERVER_NO_OPPONENTS
+				validate the message
+				continue; //go back to main menu
+			else
+				threadRetVal = -1;
+				break; //leave program
+		else{ //both clients sent CLIENT_VERSUS
+			getPlayer2Name()
+		}
+	if (!GameIsStillOn){
+		go back to main menu
+		}
+	<--------------- PART II --------------->
 
 	game on!
 	get the number from the client
@@ -329,9 +359,24 @@ LOOP:
 			send SERVER_GAME_RESULTS with other player's guess and its own results
 		else
 		break;
-	back to main manu
+}	
+	//If you are here, you're leaving the game
+	*(p_players)--;
+	* closesocket(socket);
+	* return threadRetVal;
 		*/
-
+/*
+		int GameIsStillOn(SOCKET socket, int* p_players, Message* message){
+			waitcode = waitForSingleObject(lockEvent, waittime):
+				checkwaitcode() -> avoid deadlocks. if waitcode is not 0, game is off
+			if (*(p_players) != 2 || message->type == "SERVER_OPPONENT_QUIT"){
+				release(lockEvent);
+				return 0;
+			}
+			release(lockEvent);
+			return 1;
+		}
+		
 
 		//checkVictory(socket, username, otherusername, guess, other guess){
 		//	if playerWins > 0:
@@ -339,3 +384,4 @@ LOOP:
 		//		if playerWins == 1 and !I_Won send SERVER_WIN with other username and this user's guess
 		//		if playerWins == 2 send SERVER_DRAW
 		//}
+		*/
