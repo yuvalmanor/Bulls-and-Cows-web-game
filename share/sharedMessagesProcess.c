@@ -220,3 +220,24 @@ int initFourParams(char* restOfMessage, Message* message) {
 		return NOT_SUCCESS;
 	return SUCCESS;
 }
+char* prepareMsg(const char* msgType, char* str) {
+	char* message = NULL;
+	int messageLen = -1;
+	if (NULL != str) {
+		messageLen = strlen(msgType) + strlen(str) + 2; //+2 for \n and \0
+	}
+	else
+		messageLen = strlen(msgType) + 2; //+2 for \n and \0
+
+	if (NULL == (message = malloc(messageLen))) {
+		printf("Fatal error: memory allocation failed (prepareMsg).\n");
+		return NULL;
+	}
+	strcpy_s(message, messageLen, msgType);
+	if (NULL != str) {
+		strcat_s(message, messageLen, str);
+	}
+	strcat_s(message, messageLen, "\n");
+	return message;
+
+}

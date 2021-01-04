@@ -45,6 +45,9 @@
     <ClCompile Include="main_server.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Part2.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="servicethread.h">
@@ -72,6 +75,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="main_server.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Part2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

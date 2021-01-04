@@ -40,4 +40,5 @@ int getParamsNum(int type);
 int initOneParam(char* restOfMessage, int msgType, Message* message);
 int initTwoParams(char* restOfMessage, Message* message);
 int initFourParams(char* restOfMessage, Message* message);
+char* prepareMsg(const char* msgType, char* str);
 #endif // SHAREDMESSAGESPROCESS_H

@@ -12,7 +12,7 @@ int playGame(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* i
 		}
 		printf("Getting SERVER_MAIN_MENU\n");
 		status = getMessage(c_socket, &p_serverMsg, 15000);
-		if (TRNS_SUCCEEDED != status) { //Yuval, check this is ok
+		if (TRNS_SUCCEEDED != status) { //Yuval checked it. comment still here for flag the place
 			if (SUCCESS != checkTRNSCode(status, ip, portNumber, c_socket, clientService))
 				return NOT_SUCCESS;
 			else
@@ -62,11 +62,12 @@ int setup(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* ip, 
 
 		status = SendString(p_clientMsg, c_socket);
 		free(p_clientMsg);
-		if (status != TRNS_SUCCEEDED) { //Yuval, check this is ok
-			status = checkTRNSCode(status, ip, portNumber, c_socket, clientService);
+		if (TRNS_SUCCEEDED != status) { //Yuval checked it. comment still here for flag the place
+			if (SUCCESS != checkTRNSCode(status, ip, portNumber, c_socket, clientService))
+				return NOT_SUCCESS;
+			else
+				continue;
 		}
-		if (EXIT == status) return EXIT;
-		else if (NOT_SUCCESS == status) return NOT_SUCCESS;
 		printf("CLIENT_REQUEST sent\nHoping to get SERVER_APPROVED\n");
 		status = getMessage(c_socket, &p_serverMsg, 15000);
 		if (TRNS_SUCCEEDED != status) {
@@ -223,27 +224,7 @@ int playerChoice() {
 	else
 		return 2;
 }
-char* prepareMsg(const char* msgType, char* str) {
-	char* message = NULL;
-	int messageLen = -1;
-	if (NULL!=str) {
-		messageLen = strlen(msgType) + strlen(str) + 2; //+2 for \n and \0
-	}
-	else
-		messageLen = strlen(msgType) + 2; //+2 for \n and \0
-	
-	if (NULL == (message = malloc(messageLen))) {
-		printf("Fatal error: memory allocation failed (prepareMsg).\n");
-		return NULL;
-	}
-	strcpy_s(message, messageLen, msgType);
-	if (NULL != str) {
-		strcat_s(message, messageLen, str);
-	}
-	strcat_s(message, messageLen, "\n");
-	return message;
 
-}
 int checkTRNSCode(int TRNSCode, char* ip, int portNumber, SOCKET c_socket, SOCKADDR_IN clientService) {
 	int choice;
 	

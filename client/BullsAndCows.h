@@ -23,7 +23,6 @@ int setup(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* ip, 
 int start(SOCKET c_socket);
 int GameIsOn(SOCKET c_socket);
 int playerChoice();
-char* prepareMsg(const char* msgType, char* str);
 int checkTRNSCode(int TRNSCode, char* ip, int portNumber, SOCKET c_socket, SOCKADDR_IN clientService);
 int menu(int menu, char* ip, int portNumber);
 char* chooseNumber();
