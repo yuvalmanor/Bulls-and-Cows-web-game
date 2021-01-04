@@ -2,7 +2,7 @@
 
 int startGame(SOCKET socket, HANDLE h_sharedFile) {
 	int status;
-	char* p_serverMsg = NULL;
+	char* p_serverMsg = NULL, * p_opponentGuess = NULL, * p_userNum = NULL;
 	Message* p_clientMsg = NULL;
 
 	/*if (otherPlayerLeftGame()) {
@@ -13,25 +13,85 @@ int startGame(SOCKET socket, HANDLE h_sharedFile) {
 	if (NULL == p_serverMsg) return NOT_SUCCESS;
 	status = SendString(p_serverMsg, socket);
 	free(p_serverMsg);
-	if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return START_AGAIN; //what happan if send/recv disconnect\timeout?
+	if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return DISCONNECTION; //what happan if send/recv disconnect\timeout?
 	else if (TRNS_FAILED == status) return NOT_SUCCESS;
-	
+	status = getMessage(socket, &p_clientMsg, 30000);
+	if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return DISCONNECTION;
+	else if (TRNS_FAILED == status) return NOT_SUCCESS;
+	if (strcmp(p_clientMsg->type, "CLIENT_SETUP")) {
+		free(p_clientMsg);
+		return NOT_SUCCESS;
+	}
+	p_userNum = p_clientMsg->guess;
+
 }
 
+char* getResults(char* username, char* opponentName, char* userNum, char* opponentGuess, char* opponentNum) {
+	char* p_resultMsg = NULL, c_bulls, c_cows;
+	int messageLen = 0, bulls = 0, cows = 0, i = 0, indexDiff;
+
+	//call to function which will check if user won - need to read it from file
+
+	//<---In case of opponent WIN--->
+	if (!strcmp(userNum, opponentGuess)) {
+		messageLen = strlen("SERVER_WIN:") + strlen(opponentName) + strlen(opponentNum) + 3; //+3 for ;,\n,\0
+		if (NULL == (p_resultMsg = malloc(messageLen))) {
+			printf("Fatal error: memory allocation failed (getResults).\n");
+			return NULL;
+		}
+		strcpy_s(p_resultMsg, messageLen, "SERVER_WIN:");
+		strcat_s(p_resultMsg, messageLen, opponentName);
+		strcat_s(p_resultMsg, messageLen, ";");
+		strcat_s(p_resultMsg, messageLen, opponentNum);
+		strcat_s(p_resultMsg, messageLen, "\n");
+		return p_resultMsg;
+	}
+	else //In case no winner yet
+	{
+		for (i = 0; i < 4; i++) { //calculate number of bulls and cows
+			char* cur = strchr(userNum, opponentGuess[i]);
+			if (NULL == cur) continue;
+			indexDiff = (int)(cur - userNum);
+			if (i == indexDiff) {
+				bulls += 1;
+				continue;
+			}
+			else
+				cows += 1;
+		}
+		c_bulls = bulls + '0';
+		c_cows = cows + '0';
+		messageLen = strlen("SERVER_GAME_RESULTS:") + strlen(opponentName) + strlen(opponentGuess) + 7; /*7 for bulls,cows,3*;,\n,\0*/
+		if (NULL == (p_resultMsg = malloc(messageLen))) {
+			printf("Fatal error: memory allocation failed (getResults).\n");
+			return NULL;
+		}
+		strcpy_s(p_resultMsg, messageLen, "SERVER_GAME_RESULTS:");
+		strncat_s(p_resultMsg, messageLen, &c_bulls, 1);
+		strcat_s(p_resultMsg, messageLen, ";");
+		strncat_s(p_resultMsg, messageLen, &c_bulls, 1);
+		strcat_s(p_resultMsg, messageLen, ";");
+		strcat_s(p_resultMsg, messageLen, opponentName);
+		strcat_s(p_resultMsg, messageLen, ";");
+		strcat_s(p_resultMsg, messageLen, opponentGuess);
+		strcat_s(p_resultMsg, messageLen, "\n");
+		return p_resultMsg;
+	}
+}
 /*< -------------- - PART II--------------->
 #	There are two players and they know each other names
 	if (otherPlayerLeftGame()) {
 		send SERVER_OPPONENT_QUIT
 			go back to main menu
 	}
-send SERVER_SETUP_REQUSET
+#send SERVER_SETUP_REQUSET
 validate message sent -> if not, leaveGame() break;
 getMessage()
 validate message received -> if not, leaveGame() break;
 if message->type != CLIENT_SETUP->leaveGame() break;
 secretNum = message->guess
-retVal = writeSecretNumToFile(h_file, playerOne, secretNum);
-check if retVal suceeded
+retVal = writeSecretNumToFile(h_file, playerOne, secretNum);--->Why we need function for every writing?
+check if retVal suceeded										why not one function for all writes?
 if (otherPlayerLeftGame()) {
 	send SERVER_OPPONENT_QUIT
 		go back to main menu
