@@ -1,69 +1,17 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include "serverManager.h"
 
-int ServerMainFreeResources(SOCKET MainSocket, ThreadParam** threadParams) {
-	if (NULL != MainSocket) {
-		if (closesocket(MainSocket) == SOCKET_ERROR)
-			printf("Failed to close MainSocket in ServerMainFreeResources(). error %ld\n", WSAGetLastError());
-	}
-	if (WSACleanup() == SOCKET_ERROR) {
-		printf("Failed to close Winsocket in ServerMainFreeResources(). error %ld\n", WSAGetLastError());
-	}
-	for (int i = 0; i < 4; i++) {
-		if (threadParams[i] != NULL) {
-			if (closesocket(threadParams[i]->socket) == SOCKET_ERROR) {
-				printf("Can't close socket, it might alraedy be closed\n");
-			}
-			free(threadParams[i]);
-		}
-	}
-	return 1;
-}
-
-ThreadParam* initThreadParam(SOCKET socket, int index, int* players) {
-		ThreadParam* p_threadparams = NULL;
-		if (NULL == (p_threadparams = (ThreadParam*)malloc(sizeof(ThreadParam)))) {
-			printf("Fatal error: memory allocation failed (ThreadParam).\n");
-			return NULL;
-		}
-		p_threadparams->socket = socket;
-		p_threadparams->offset = 6; // This field is not necessary
-		p_threadparams->p_players = players;
-		return p_threadparams;
-}
-
-
-HANDLE GetSyncEvent()
-{
-	HANDLE syncEvent;
-	DWORD last_error;
-	LPCSTR FileEvent = "FileEvent";
-	/* Get handle to event by name. If the event doesn't exist, create it */
-	syncEvent = CreateEvent(
-		NULL, /* default security attributes */
-		FALSE,       /* auto-reset event */
-		TRUE,      /* initial state is signaled */
-		FileEvent);         /* name */
-	/* Check if succeeded and handle errors */
-
-	last_error = GetLastError();
-	/* If last_error is ERROR_SUCCESS, then it means that the event was created.
-	   If last_error is ERROR_ALREADY_EXISTS, then it means that the event already exists */
-
-	return syncEvent;
-}
-
-serverManager(int portNumber){
+int serverManager(int portNumber){
 	SOCKET MainSocket = INVALID_SOCKET;
-	ThreadParam* threadParams[MAX_NUM_OF_PLAYERS+1] = { NULL, NULL, NULL };
+	ThreadParam* threadParams[MAX_NUM_OF_PLAYERS+2] = { NULL, NULL, NULL, NULL};
 	unsigned long Address;
 	SOCKADDR_IN service;
 	int bindRes;
 	int ListenRes;
 	int index;
 	int players = 0;
-	HANDLE threadHandles[MAX_NUM_OF_PLAYERS+1] = { NULL, NULL, NULL };
-
+	HANDLE threadHandles[MAX_NUM_OF_PLAYERS+2] = { NULL, NULL, NULL, NULL };
+	HANDLE lockEvent = NULL, syncEvent = NULL, FailureEvent = NULL;
 	//<--------Initialize Winsock------->
 	if (-1 == InitializeWinsock()) { 
 		return -1;
@@ -118,9 +66,12 @@ serverManager(int portNumber){
 	printf("listening to IP: %s port %d\n", LOCALHOST, portNumber);
 
 	//Create syncronization mechanisms
-	//CreateEvent()
-	//Start polling for "quit" message - if it will happen, all threads must be closed, resources freed and program will end
-
+	if (FAILED == createEvents(&lockEvent, &syncEvent, &FailureEvent)) {
+		ServerMainFreeResources(MainSocket, threadParams);
+		return -1;
+	}
+	//start polling for exit with a thread - it asks the threads to finish politly
+	//make a thread that awaits failureEvent to be signaled - it kills the other threads
 	printf("Waiting for a client to connect\n");
 
 	//<------ Wait for clients to connect ------>
@@ -173,7 +124,38 @@ serverManager(int portNumber){
 }
 
 
-void TerminateServiceThreads(HANDLE* threadHandles, SOCKET* threadParams)
+ThreadParam* initThreadParam(SOCKET socket, int index, int* players) {
+	ThreadParam* p_threadparams = NULL;
+	if (NULL == (p_threadparams = (ThreadParam*)malloc(sizeof(ThreadParam)))) {
+		printf("Fatal error: memory allocation failed (ThreadParam).\n");
+		return NULL;
+	}
+	p_threadparams->socket = socket;
+	p_threadparams->p_players = players;
+	return p_threadparams;
+}
+
+
+int ServerMainFreeResources(SOCKET MainSocket, ThreadParam** threadParams) { //Add all events and close handles
+	if (NULL != MainSocket) {
+		if (closesocket(MainSocket) == SOCKET_ERROR)
+			printf("Failed to close MainSocket in ServerMainFreeResources(). error %ld\n", WSAGetLastError());
+	}
+	if (WSACleanup() == SOCKET_ERROR) {
+		printf("Failed to close Winsocket in ServerMainFreeResources(). error %ld\n", WSAGetLastError());
+	}
+	for (int i = 0; i < 4; i++) {
+		if (threadParams[i] != NULL) {
+			if (closesocket(threadParams[i]->socket) == SOCKET_ERROR) {
+				printf("Can't close socket, it might alraedy be closed\n");
+			}
+			free(threadParams[i]);
+		}
+	}
+	return 1;
+}
+
+void TerminateServiceThreads(HANDLE* threadHandles, SOCKET* threadParams) //Needed?
 {
 	int index;
 

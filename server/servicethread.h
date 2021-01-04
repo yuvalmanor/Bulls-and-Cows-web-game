@@ -16,13 +16,19 @@
 
 typedef struct ThreadParam {
 	SOCKET socket;
-	int offset; //Not necessary
 	int* p_players;
 
 }ThreadParam;
 
 static numOfPlayers = 0;
 
-DWORD ServiceThread(ThreadParam* lpParam);
+DWORD ServiceThread(void* lpParam);
+int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_players, int* playerOne, char* username, char** otherUsername);
+int getUserNameAndApproveClient(SOCKET socket, char** username);
+HANDLE openOrCreateFile(int* playerOne);
+int writeToFile(HANDLE h_file, int offset, char* data, int playerOne, int writeUsername);
+int readFromFile(HANDLE h_sharedFile, int offset, char** data, int playerOne, int readUsername);
+int getEvents(HANDLE* lockEvent, HANDLE* syncEvent, HANDLE* FailureEvent);
+void leaveGame(SOCKET socket, HANDLE lockEvent, int* p_players, HANDLE h_sharedFile, Message* message);
 
 #endif // !SERVICETHREAD_H

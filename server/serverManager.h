@@ -18,8 +18,9 @@
 
 //#define EVENT_NAME "Event_1"
 
+ThreadParam* initThreadParam(SOCKET socket, int index, int* players);
 
-serverManager(int portNumber);
+int serverManager(int portNumber);
 
 void TerminateServiceThreads(HANDLE* threadHandles, SOCKET* threadInputs);
 
