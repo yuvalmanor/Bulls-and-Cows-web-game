@@ -12,7 +12,7 @@ int playGame(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* i
 		}
 		printf("Getting SERVER_MAIN_MENU\n");
 		status = getMessage(c_socket, &p_serverMsg, 15000);
-		if (TRNS_SUCCEEDED != status) { //Yuval, check this is ok
+		if (TRNS_SUCCEEDED != status) { //Yuval checked it. comment still here for flag the place
 			if (SUCCESS != checkTRNSCode(status, ip, portNumber, c_socket, clientService))
 				return NOT_SUCCESS;
 			else
@@ -62,11 +62,12 @@ int setup(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* ip, 
 
 		status = SendString(p_clientMsg, c_socket);
 		free(p_clientMsg);
-		if (status != TRNS_SUCCEEDED) { //Yuval, check this is ok
-			status = checkTRNSCode(status, ip, portNumber, c_socket, clientService);
+		if (TRNS_SUCCEEDED != status) { //Yuval checked it. comment still here for flag the place
+			if (SUCCESS != checkTRNSCode(status, ip, portNumber, c_socket, clientService))
+				return NOT_SUCCESS;
+			else
+				continue;
 		}
-		if (EXIT == status) return EXIT;
-		else if (NOT_SUCCESS == status) return NOT_SUCCESS;
 		printf("CLIENT_REQUEST sent\nHoping to get SERVER_APPROVED\n");
 		status = getMessage(c_socket, &p_serverMsg, 15000);
 		if (TRNS_SUCCEEDED != status) {
@@ -197,43 +198,33 @@ int GameIsOn(SOCKET c_socket) {
 	
 }
 int playerChoice() {
-	char option;
-	
+	char* choice = NULL, option;
+	int res=0;
 
-	
-	option = getchar();
-	printf("option:%c\n", option);
-	while (option != '1' && option != '2') {
-		printf("Invalid option. Try again\n");
-		option = getchar();
-		option = getchar();
+	if (NULL == (choice = malloc(PAGE_SIZE))) {
+		printf("Fatal error: memory allocation failed (playerChoice).\n");
+		return NULL;
 	}
+	while (1) {
+		scanf_s("%s", choice, PAGE_SIZE);
+		if (1 != strlen(choice)) {
+			printf("Invalid choice. Try again.\n");
+			continue;
+		}
+		option = choice[0];
+		if (!isdigit(option) || option != '1' && option != '2') {
+			printf("Invalid choice. Try again.\n");
+			continue;
+		}
+		break;
+	}
+	free(choice);
 	if ('1' == option)
 		return 1;
 	else
 		return 2;
 }
-char* prepareMsg(const char* msgType, char* str) {
-	char* message = NULL;
-	int messageLen = -1;
-	if (str != NULL) {
-		messageLen = strlen(msgType) + strlen(str) + 2; //+2 for \n and \0
-	}
-	else
-		messageLen = strlen(msgType) + 2; //+2 for \n and \0
-	
-	if (NULL == (message = malloc(messageLen))) {
-		printf("Fatal error: memory allocation failed (prepareMsg).\n");
-		return NULL;
-	}
-	strcpy_s(message, messageLen, msgType);
-	if (NULL != str) {
-		strcat_s(message, messageLen, str);
-	}
-	strcat_s(message, messageLen, "\n");
-	return message;
 
-}
 int checkTRNSCode(int TRNSCode, char* ip, int portNumber, SOCKET c_socket, SOCKADDR_IN clientService) {
 	int choice;
 	
@@ -285,7 +276,7 @@ char* chooseNumber() {
 	int i = 0, flag = 1;
 
 	if (NULL == (guess = malloc(PAGE_SIZE))) {
-		printf("Fatal error: memory allocation failed (prepareMsg).\n");
+		printf("Fatal error: memory allocation failed (chooseNumber).\n");
 		return NULL;
 	}
 	

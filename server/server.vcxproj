@@ -146,6 +146,7 @@
     <ClCompile Include="..\share\stringProcessor.c" />
     <ClCompile Include="..\share\WinsockFunc.c" />
     <ClCompile Include="main_server.c" />
+    <ClCompile Include="Part2.c" />
     <ClCompile Include="serverFullThread.c" />
     <ClCompile Include="serverManager.c" />
     <ClCompile Include="servicethread.c" />
@@ -157,6 +158,7 @@
     <ClInclude Include="..\share\stringProcessor.h" />
     <ClInclude Include="..\share\WinsockFunc.h" />
     <ClInclude Include="main_server.h" />
+    <ClInclude Include="Part2.h" />
     <ClInclude Include="serverFullThread.h" />
     <ClInclude Include="serverManager.h" />
     <ClInclude Include="servicethread.h" />
