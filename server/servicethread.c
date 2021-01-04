@@ -286,6 +286,7 @@ DWORD ServiceThread(void* lpParam) {
 
 /*
 threadRetVal = 0;
+gameStatus = GAME_STILL_ON;
 get first message from client
 validate the message
 username = message->username
@@ -318,55 +319,97 @@ LOOP:{
 	release(lockEvent)
 	if (playerOne){
 		waitcode = waitForSingleObject(syncEvent, 30 sec)
-		if waitcode != 0 (didn't work)
+		if waitcode != 0 (didn't work){
 				deleteFile(file)
 			if waitcode is TIMEDOUT:
 				send client SERVER_NO_OPPONENTS
 				validate the message
 				continue; //go back to main menu
-			else
-				threadRetVal = -1;
+			else{
+				gameStatus = FAILED;
 				break; //leave program
+			}
+		}
 		else{ //both clients sent CLIENT_VERSUS
-			getPlayer2Name()
+			getPlayer2Name() //This function uses lockEvent so as long as player2 is not finished writing, player1 will wait
 		}
-	if (!GameIsStillOn){
+	}
+	if (otherPlayerLeftGame){
+		send SERVER_OPPONENT_QUIT 
 		go back to main menu
-		}
+	}
+	send client SERVER_INVITE with the otherUsername
+	validate the message sent
+
 	<--------------- PART II --------------->
+	There are two players and they know each other names
+	if (otherPlayerLeftGame()){
+		send SERVER_OPPONENT_QUIT 
+		go back to main menu
+	}
+	send SERVER_SETUP_REQUSET
+	validate message sent -> if not, leaveGame() break;
+	getMessage()
+	validate message received -> if not, leaveGame() break;
+	if message->type != CLIENT_SETUP -> leaveGame() break;
+	secretNum = message->guess
+	retVal = writeSecretNumToFile(h_file, playerOne, secretNum);
+	check if retVal suceeded
+	if (otherPlayerLeftGame()){
+		send SERVER_OPPONENT_QUIT
+		go back to main menu
+	}
+	WAIT FOR BOTH OPPONENTS TO WRITE NUM AND GET THE OTHER SECRETNUM??
 
 	game on!
-	get the number from the client
-	validate the message is CLIENT_SETUP (client should validate the value is good)
-	if (not client disconnected)
-	if (not players<2)
-	write secretNum to the file (no need for mutex), acording to playerOne or !playerOne
-	wait for other player to also write their secretNum <---------- IMPORTANT
-	while()
-		get otherSecretNum from file
+	At this point, both players have secretNum and otherSecretNum
+	while(1){
+		if (otherPlayerLeftGame()){
+			send SERVER_OPPONENT_QUIT
+			gameStatus = MAIN_MENU
+			break;
+		}
+		send SERVER_PLAYER_MOVE_REQUEST
+		validate message sent -> if not, gameStatus = FAILED, break;
+		getMessage()
+		validate message received -> if not, gameStatus = FAILED, break;
+		if message->type != CLIENT_PLAYER_MOVE -> gameStatus = FAILED, break;
+		guess = message->guess
 
-	send the client a CLIENT_PLAYER_MOVE
-	validate sent
-	while()
-		get the move from client
-		validate the message is CLIENT_PLAYER_MOVE
-		calculate the bulls and cows, write results to file
-		if won, raise playerWins (mutex) raise I_won to 1
-		when both players are done checking:
-		game_finished = checkVictory(socket, username, otherusername, guess, other guess);
-		if !game_finished:	
-			read other player's guess
-			send SERVER_GAME_RESULTS with other player's guess and its own results
-		else
-		break;
+		IWin = getResult(guess, otherSecretNum, &result)
+		retVal = writeGuessAndResultToFile(h_file, playerOne, guess, result)
+		validate retVal is good -> if not, gameStatus = FAILED, break;
+		if (IWin){
+			waitcode = waitForSingleObject(lockEvent);
+			check waitcode if there was a problem -> release(lockEvent), gameStatus = FAILED, break;
+			*(p_playerWins)++;
+			release(lockEvent);
+
+		if (otherPlayerLeftGame()){
+			send SERVER_OPPONENT_QUIT
+			gameStatus = MAIN_MENU
+			break;
+		}
+		WAIT FOR BOTH PLAYERS TO WRITE RESULT AND GUESS TO FILE <---
+
+		getOtherPlayerGuessAndResult(h_file, &otherGuess, &otherResult)
+		gameStatus = GameStatus(socket, username, othersernaUme, guess, otherGuess, otherResult, IWin)
+		if (gameStatus != GAME_STILL_ON){ //No need for more guesses (Someone won or there was an error)
+			break;
+		}
+	}// end of the guessing while loop
+	if (gameStatus == FAILED){
+		threadRetVal = -1;
+		break
+	}
 }	
 	//If you are here, you're leaving the game
 	*(p_players)--;
-	* closesocket(socket);
-	* return threadRetVal;
+	closesocket(socket);
+	return threadRetVal;
 		*/
 /*
-		int GameIsStillOn(SOCKET socket, int* p_players, Message* message){
+		int otherPlayerLeftGame(SOCKET socket, int* p_players, Message* message){
 			waitcode = waitForSingleObject(lockEvent, waittime):
 				checkwaitcode() -> avoid deadlocks. if waitcode is not 0, game is off
 			if (*(p_players) != 2 || message->type == "SERVER_OPPONENT_QUIT"){
@@ -378,10 +421,32 @@ LOOP:{
 		}
 		
 
-		//checkVictory(socket, username, otherusername, guess, other guess){
-		//	if playerWins > 0:
-		//		if playerWins == 1 and I_Won, send SERVER_WIN with username and other user's guess
-		//		if playerWins == 1 and !I_Won send SERVER_WIN with other username and this user's guess
-		//		if playerWins == 2 send SERVER_DRAW
-		//}
+		GameStatus(socket, username, otherUsername, guess, otherGuess, otherResult, IWin){
+		 int theyWon = 0;
+			if (otherResult[0] == 4){ //  other player has 4 bulls
+				theyWon = 1;
+			}
+			if (IWin || theyWin){
+				if (IWin && theyWin){
+					send SERVER_DRAW
+					validate message sent -> if not return FAILED
+				}
+				if (IWin){
+					prepareMessage( SERVER_WIN, username, otherGuess)
+					send SERVER_WIN with username and other user's guess
+					validate message sent -> if not return FAILED
+					}
+				else{ //theyWin
+					prepareMessage( SERVER_WIN, otherUsername, guess)
+					send SERVER_WIN with username and other user's guess
+					validate message sent -> if not return FAILED
+				}
+				return MAIN_MENU;
+			}
+			//If no one wins
+			prepareMessage(SERVER_GAME_RESULTS, result[0], result[1], otherUsername, otherGuess)
+			send the message
+			validate message sent -> if not return FAILED
+			return GAME_STILL_ON;
+		}
 		*/
