@@ -197,17 +197,27 @@ int GameIsOn(SOCKET c_socket) {
 	
 }
 int playerChoice() {
-	char option;
-	
+	char* choice = NULL, option;
+	int res=0;
 
-	
-	option = getchar();
-	printf("option:%c\n", option);
-	while (option != '1' && option != '2') {
-		printf("Invalid option. Try again\n");
-		option = getchar();
-		option = getchar();
+	if (NULL == (choice = malloc(PAGE_SIZE))) {
+		printf("Fatal error: memory allocation failed (playerChoice).\n");
+		return NULL;
 	}
+	while (1) {
+		scanf_s("%s", choice, PAGE_SIZE);
+		if (1 != strlen(choice)) {
+			printf("Invalid choice. Try again.\n");
+			continue;
+		}
+		option = choice[0];
+		if (!isdigit(option) || option != '1' && option != '2') {
+			printf("Invalid choice. Try again.\n");
+			continue;
+		}
+		break;
+	}
+	free(choice);
 	if ('1' == option)
 		return 1;
 	else
@@ -216,7 +226,7 @@ int playerChoice() {
 char* prepareMsg(const char* msgType, char* str) {
 	char* message = NULL;
 	int messageLen = -1;
-	if (str != NULL) {
+	if (NULL!=str) {
 		messageLen = strlen(msgType) + strlen(str) + 2; //+2 for \n and \0
 	}
 	else
@@ -285,7 +295,7 @@ char* chooseNumber() {
 	int i = 0, flag = 1;
 
 	if (NULL == (guess = malloc(PAGE_SIZE))) {
-		printf("Fatal error: memory allocation failed (prepareMsg).\n");
+		printf("Fatal error: memory allocation failed (chooseNumber).\n");
 		return NULL;
 	}
 	
