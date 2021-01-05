@@ -573,14 +573,14 @@ int getEvents(HANDLE* lockEvent, HANDLE* syncEvent, HANDLE* FailureEvent) // CHE
 	return SUCCESS;
 }
 
-int SyncTwoThreads(int* p_PlayersCount, HANDLE lockEvent, HANDLE syncEvent) {
+int SyncTwoThreads(int* p_PlayersCount, HANDLE lockEvent, HANDLE syncEvent, int waitTime) {
 	DWORD waitcode;
-	waitcode = WaitForSingleObject(lockEvent, LOCKEVENT_WAITTIME);
+	waitcode = WaitForSingleObject(lockEvent, waitTime);
 	if (waitcode != WAIT_OBJECT_0) {
 		if (waitcode == WAIT_TIMEOUT) { return DISCONNECTED; }
 		else { return NOT_SUCCESS; }
 	}
-	// < ------ - safe zone------->
+	// < ------ - safe zone-------> ////CHECK SetEvent ERROR CODE!
 		(*p_PlayersCount)++;
 		if (*p_PlayersCount == 2) {
 			SetEvent(syncEvent);
@@ -588,13 +588,13 @@ int SyncTwoThreads(int* p_PlayersCount, HANDLE lockEvent, HANDLE syncEvent) {
 		SetEvent(lockEvent);
 		//<--------end of safe zone------>
 
-		WaitForSingleObject(syncEvent, LOCKEVENT_WAITTIME);
+		WaitForSingleObject(syncEvent, waitTime);
 		if (waitcode != WAIT_OBJECT_0) {
 			if (waitcode == WAIT_TIMEOUT) { return DISCONNECTED; }
 		}
 		else { return NOT_SUCCESS; }
 
-		WaitForSingleObject(lockEvent, LOCKEVENT_WAITTIME);
+		WaitForSingleObject(lockEvent, waitTime);
 		if (waitcode != WAIT_OBJECT_0) {
 			if (waitcode == WAIT_TIMEOUT) { return DISCONNECTED; }
 		}
