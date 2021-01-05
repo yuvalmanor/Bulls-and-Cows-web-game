@@ -550,7 +550,7 @@ int getEvents(HANDLE* lockEvent, HANDLE* syncEvent, HANDLE* FailureEvent) // CHE
 	}
 	(*syncEvent) = CreateEvent(
 		NULL, /* default security attributes */
-		FALSE,       /* auto-reset event */
+		TRUE,       /* manual-reset event */
 		FALSE,      /* initial state is non-signaled */
 		syncEvent_name);         /* name */
 	if (*syncEvent == NULL) {
