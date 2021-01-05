@@ -8,9 +8,9 @@
 #include "SocketSendRecvTools.h"
 #include "sharedMessagesProcess.h"
 #include "servicethread.h"
+#include "hardcodeddata.h"
 
-#define EXIT 0
-#define DISCONNECTION 2
+
 
 
 typedef enum { MAIN, FAILURE, DENIED } menuStatus;
