@@ -7,6 +7,10 @@
 #define PAGE_SIZE 4096
 #define SUCCESS 1
 #define NOT_SUCCESS -1
+#define DISCONNECTED -2
+#define MAIN_MENU 1
+#define GAME_STILL_ON 2
+#define QUIT 3
 
 #define LOCKEVENT_WAITTIME 5
 #define RESPONSE_WAITTIME 30000
@@ -19,9 +23,5 @@
 #define RESULT_OFFSET 12
 
 
-#define DISCONNECTED -2
-#define MAIN_MENU 1
-#define GAME_STILL_ON 2
-#define QUIT 3
 
 #endif // !HARDCODEDDATA_H

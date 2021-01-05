@@ -17,6 +17,7 @@
 typedef struct ThreadParam {
 	SOCKET socket;
 	int* p_players;
+	int* p_PlayersCount;
 
 }ThreadParam;
 
@@ -30,4 +31,6 @@ int writeToFile(HANDLE h_file, int offset, char* data, int playerOne, int writeU
 int readFromFile(HANDLE h_sharedFile, int offset, char** data, int playerOne, int readUsername);
 int getEvents(HANDLE* lockEvent, HANDLE* syncEvent, HANDLE* FailureEvent);
 void leaveGame(SOCKET socket, HANDLE lockEvent, int* p_players, HANDLE h_sharedFile, Message* message);
+int SyncTwoThreads(int* p_PlayersCount, HANDLE lockEvent, HANDLE syncEvent);
+
 #endif // !SERVICETHREAD_H
