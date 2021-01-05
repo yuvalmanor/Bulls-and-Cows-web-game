@@ -134,7 +134,7 @@ ThreadParam* initThreadParam(SOCKET socket, int index, int* players) {
 	return p_threadparams;
 }
 
-int ServerMainFreeResources(SOCKET MainSocket, ThreadParam** threadParams) { //Add all events and close handles
+int ServerMainFreeResources(SOCKET MainSocket, ThreadParam** threadParams, HANDLE lockEvent, HANDLE syncEvent, HANDLE FailureEvent) { //Add all events and close handles
 	if (NULL != MainSocket) {
 		if (closesocket(MainSocket) == SOCKET_ERROR)
 			printf("Failed to close MainSocket in ServerMainFreeResources(). error %ld\n", WSAGetLastError());
@@ -149,6 +149,11 @@ int ServerMainFreeResources(SOCKET MainSocket, ThreadParam** threadParams) { //A
 			}
 			free(threadParams[i]);
 		}
+	}
+	if (lockEvent != NULL && syncEvent != NULL && FailureEvent != NULL) {
+		CloseHandle(lockEvent);
+		CloseHandle(syncEvent);
+		CloseHandle(FailureEvent);
 	}
 	return 1;
 }
