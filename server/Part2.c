@@ -26,7 +26,7 @@ int startGame(SOCKET socket, HANDLE h_sharedFile) {
 
 }
 
-char* getResults(char* username, char* opponentName, char* userNum, char* opponentGuess, char* opponentNum) {
+char* getResults(char* username, char* opponentName, char* userNum, char* opponentGuess, char* opponentNum){
 	char* p_resultMsg = NULL, c_bulls, c_cows;
 	int messageLen = 0, bulls = 0, cows = 0, i = 0, indexDiff;
 

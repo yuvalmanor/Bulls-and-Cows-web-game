@@ -1,11 +1,18 @@
 #include "servicethread.h"
 
+typedef const char* LPCSTR;
+
+static LPCSTR lockEvent_name = "lockEvent";
+static LPCSTR syncEvent_name = "syncEvent";
+static LPCSTR failureEvent_name = "Failure";
+static LPCSTR sharedFile_name = "GameSession.txt";
+
 DWORD ServiceThread(void* lpParam) {
 	//get thread parameters
 	ThreadParam* p_param;
 	if (NULL == lpParam) {
 		printf("Service thread can't work with NULL as parameters\n");
-		return FAILED;
+		return FAILING;
 	}
 	p_param = (ThreadParam*)lpParam;
 	DWORD waitcode;
@@ -18,14 +25,14 @@ DWORD ServiceThread(void* lpParam) {
 	HANDLE h_sharedFile = NULL, lockEvent = NULL, syncEvent = NULL, failureEvent = NULL;
 	TransferResult_t transResult;
 
-	if (FAILED == getEvents(&lockEvent, &syncEvent, &failureEvent)) {
-		return FAILED;
+	if (FAILING == getEvents(&lockEvent, &syncEvent, &failureEvent)) {
+		return FAILING;
 	}
 
 	retVal = getUserNameAndApproveClient(socket, &username);
-	if (retVal == FAILED) {
+	if (retVal == FAILING) {
 		leaveGame(socket, lockEvent, NULL, NULL, NULL);
-		return FAILED;
+		return FAILING;
 	}
 
 	waitcode = WaitForSingleObject(lockEvent, LOCKEVENT_WAITTIME);
@@ -63,14 +70,14 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_players,
 		if (transResult == TRNS_DISCONNECTED)
 			return DISCONNECTED;
 		else
-			return FAILED;
+			return FAILING;
 	}
 	retVal = getMessage(socket, &message, INFINITE); //Get response from client
 	if (retVal != TRNS_SUCCEEDED) {
 		if (retVal == TRNS_DISCONNECTED)
 			return DISCONNECTED;
 		else
-			return FAILED;
+			return FAILING;
 	}
 	if (strcmp(message->type, "CLIENT_DISCONNECT")) { //If client chose to quit
 		free(message);
@@ -78,7 +85,7 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_players,
 	}
 	else if (!strcmp(message->type, "CLIENT_VERSUS")) {//If an invalid response
 		free(message);
-		return FAILED;
+		return FAILING;
 	}
 	//else- client chose CLIENT_VERSUS
 	free(message); message = NULL;
@@ -87,16 +94,16 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_players,
 	waitcode = WaitForSingleObject(lockEvent, LOCKEVENT_WAITTIME);
 	if (waitcode != WAIT_OBJECT_0) {
 		printf("Waitcode is %d\nError code %d while waiting for lockEvent\n", waitcode, GetLastError());
-		return FAILED;
+		return FAILING;
 	}
 	if (!ResetEvent(lockEvent)) { //lock lockEvent
 		printf("ResetEvent failed %d\n", GetLastError());
-		return FAILED;
+		return FAILING;
 	}
 	if (*p_players != 2) {
 		if (!SetEvent(lockEvent)) { //release lockEvent
 			printf("SetEvent failed %d\n", GetLastError());
-			return FAILED;
+			return FAILING;
 		}//Send client SERVER_NO_OPPONENTS
 		printf("sending SERVER_NO_OPPONENTS\n");
 		char* p_rawMessage = "SERVER_NO_OPPONENTS\n";
@@ -105,7 +112,7 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_players,
 			if (transResult == TRNS_DISCONNECTED)
 				return DISCONNECTED;
 			else
-				return FAILED;
+				return FAILING;
 		}
 		return MAIN_MENU;
 	}
@@ -114,39 +121,39 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_players,
 	if (h_sharedFile == INVALID_HANDLE_VALUE) {
 		if (!SetEvent(lockEvent)) { //release lockEvent
 			printf("SetEvent failed %d\n", GetLastError());
-			return FAILED;
+			return FAILING;
 		}
 	}
 	printf("PlayerOne = %d\n", *playerOne); //DEBUG
 	if (!*playerOne) {
-		if (FAILED == readFromFile(h_sharedFile, 0, otherUsername, *playerOne, 1)) {//get player 1's name
-			closeHandle(h_sharedFile);
+		if (FAILING == readFromFile(h_sharedFile, 0, otherUsername, *playerOne, 1)) {//get player 1's name
+			CloseHandle(h_sharedFile);
 			SetEvent(lockEvent);
-			return FAILED;
+			return FAILING;
 		}
 		offset = strlen(*otherUsername) + 2;
 		if (!SetEvent(syncEvent)) { //release syncEvent
 			printf("SetEvent failed %d\n", GetLastError());
-			closeHandle(h_sharedFile);
+			CloseHandle(h_sharedFile);
 			SetEvent(lockEvent);
-			return FAILED;
+			return FAILING;
 		}
 	}
-	if (FAILED == writeToFile(h_sharedFile, offset, username, *playerOne, 1)) {
-		closeHandle(h_sharedFile);
+	if (FAILING == writeToFile(h_sharedFile, offset, username, *playerOne, 1)) {
+		CloseHandle(h_sharedFile);
 		SetEvent(lockEvent);
-		return FAILED;
+		return FAILING;
 	}
 	if (!SetEvent(lockEvent)) { //release lockEvent
 		printf("SetEvent failed %d\n", GetLastError());
-		closeHandle(h_sharedFile);
-		return FAILED;
+		CloseHandle(h_sharedFile);
+		return FAILING;
 	}
 	//---->out of the critical section
 	if (*playerOne) {
 		waitcode = WaitForSingleObject(syncEvent, RESPONSE_WAITTIME);
 		if (waitcode != WAIT_OBJECT_0) {
-			closeHandle(h_sharedFile);
+			CloseHandle(h_sharedFile);
 			if (waitcode == WAIT_TIMEOUT) { //The other player did not respond within 30 seconds
 				printf("sending SERVER_NO_OPPONENTS\n");
 				char* p_rawMessage = "SERVER_NO_OPPONENTS\n";
@@ -155,7 +162,7 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_players,
 					if (transResult == TRNS_DISCONNECTED)
 						return DISCONNECTED;
 					else
-						return FAILED;
+						return FAILING;
 				}
 				else {
 					return MAIN_MENU; //message was sent. go back to main menu
@@ -163,13 +170,13 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_players,
 			}
 			else {
 				printf("There was a problem with waiting for syncEvent\n");
-				return FAILED;
+				return FAILING;
 			}
 		}
 		offset = strlen(username);
-		if (FAILED == readFromFile(h_sharedFile, offset, otherUsername, *playerOne, 1)) {//get player 2's name
-			closeHandle(h_sharedFile);
-			return FAILED;
+		if (FAILING == readFromFile(h_sharedFile, offset, otherUsername, *playerOne, 1)) {//get player 2's name
+			CloseHandle(h_sharedFile);
+			return FAILING;
 		}
 	}
 }
@@ -209,7 +216,7 @@ LOOP:{
 		release(syncEvent)
 	}
 	write the username into the file
-	closeHandle(file)
+	CloseHandle(file)
 	release(lockEvent)
 	if (playerOne){
 		waitcode = waitForSingleObject(syncEvent, 30 sec)
@@ -355,12 +362,12 @@ int getUserNameAndApproveClient(SOCKET socket, char** username) {
 	retVal = getMessage(socket, &message, 15000); //Change waitTime to a DEFINED number 
 	if (retVal != TRNS_SUCCEEDED) {
 		printf("couldn't get username from client. Quitting\n");
-		return FAILED;
+		return FAILING;
 	}
 	if (strcmp((message->type), "CLIENT_REQUEST") != 0) {
 		printf("message type is invalid, %s instead of CLIENT_REQUEST\n", message->type);
 		free(message);
-		return FAILED;
+		return FAILING;
 	}
 	(*username) = message->username;
 	free(message);
@@ -371,7 +378,7 @@ int getUserNameAndApproveClient(SOCKET socket, char** username) {
 	if (retVal != TRNS_SUCCEEDED) {
 		printf("Transfer failed when sending %s\n", p_rawMessage);
 		free(*username);
-		return FAILED;
+		return FAILING;
 	}
 
 	printf("SERVER_APPROVED sent\n");
@@ -385,7 +392,7 @@ HANDLE openOrCreateFile(int* playerOne) {
 	dwShareMode = FILE_SHARE_DELETE;
 	//Try to open existing file:
 	dwCreationDisposition = OPEN_EXISTING;
-	hFile = CreateFileA(sharedFileName,
+	hFile = CreateFileA(sharedFile_name,
 		dwDesiredAccess,
 		dwShareMode,
 		NULL,
@@ -395,7 +402,7 @@ HANDLE openOrCreateFile(int* playerOne) {
 	//if it doesn't exist, create a new file and set playerOne to 1
 	if (GetLastError() == ERROR_FILE_NOT_FOUND) {
 		dwCreationDisposition = CREATE_NEW;
-		hFile = CreateFileA(sharedFileName,
+		hFile = CreateFileA(sharedFile_name,
 			dwDesiredAccess,
 			dwShareMode,
 			NULL,
@@ -407,7 +414,7 @@ HANDLE openOrCreateFile(int* playerOne) {
 
 	}
 	else if (INVALID_HANDLE_VALUE == hFile) {
-		printf("Can't open %s file\n", sharedFileName);
+		printf("Can't open %s file\n", sharedFile_name);
 		return INVALID_HANDLE_VALUE;
 	}
 	else {
@@ -432,15 +439,15 @@ int writeToFile(HANDLE h_file, int offset, char* data, int playerOne, int writeU
 	filePointer = SetFilePointer(h_file, offset, NULL, FILE_BEGIN);
 	if (INVALID_SET_FILE_POINTER == filePointer) {
 		printf("File pointer failed to move\nError code:%d\n", GetLastError());
-		return FAILED;
+		return FAILING;
 	}
 	if (FALSE == WriteFile(h_file, data, numOfBytesToWrite, &dwBytesWritten, NULL)) {
 		printf("File write failed.\nError code:%d\n", GetLastError());
-		return FAILED;
+		return FAILING;
 	}
 	if (FALSE == WriteFile(h_file, "\r\n", 1, &dwBytesWritten, NULL)) {
 		printf("File write failed.\nError code:%d\n", GetLastError());
-		return FAILED;
+		return FAILING;
 	}
 	return SUCCESS;
 }
@@ -460,16 +467,16 @@ int readFromFile(HANDLE h_sharedFile, int offset, char** data, int playerOne, in
 	filePointer = SetFilePointer(h_sharedFile, offset, NULL, FILE_BEGIN);
 	if (INVALID_SET_FILE_POINTER == filePointer) {
 		printf("File pointer failed to move\nError code:%d\n", GetLastError());
-		return FAILED;
+		return FAILING;
 	}
 	if (NULL == (buffer = (char*)malloc(numOfBytesToRead))) {
 		printf("Fatal error: memory allocation failed (ReadFromFile).\n");
-		return FAILED;
+		return FAILING;
 	}
 	if (FALSE == ReadFile(h_sharedFile, buffer, numOfBytesToRead, &dwBytesRead, NULL)) {
 		printf("File read failed.\nError code:%d\n", GetLastError());
 		free(buffer);
-		return FAILED;
+		return FAILING;
 	}
 	//Place \0 at the right place
 	for (int i = 0; i < numOfBytesToRead; i++) {
@@ -484,6 +491,7 @@ int readFromFile(HANDLE h_sharedFile, int offset, char** data, int playerOne, in
 
 void leaveGame(SOCKET socket, HANDLE lockEvent, int* p_players, HANDLE h_sharedFile, Message* message) {
 	//TODO
+	int x = 1;
 }
 
 
@@ -498,7 +506,7 @@ int getEvents(HANDLE* lockEvent, HANDLE* syncEvent, HANDLE* FailureEvent) // CHE
 	/* Check if succeeded and handle errors */
 	if (*lockEvent == NULL) {
 		printf("Counldn't create Event. Error: %d\n", GetLastError());
-		return FAILED;
+		return FAILING;
 	}
 	(*syncEvent) = CreateEvent(
 		NULL, /* default security attributes */
@@ -508,18 +516,18 @@ int getEvents(HANDLE* lockEvent, HANDLE* syncEvent, HANDLE* FailureEvent) // CHE
 	if (*syncEvent == NULL) {
 		printf("Counldn't create Event. Error: %d\n", GetLastError());
 		CloseHandle(*lockEvent);
-		return FAILED;
+		return FAILING;
 	}
 	(*FailureEvent) = CreateEvent(
 		NULL, /* default security attributes */
 		FALSE,       /* auto-reset event */
 		FALSE,      /* initial state is non-signaled */
-		FailureEvent_name);         /* name */
+		failureEvent_name);         /* name */
 	if (*FailureEvent == NULL) {
 		printf("Counldn't create Event. Error: %d\n", GetLastError());
 		CloseHandle(*lockEvent);
 		CloseHandle(*syncEvent);
-		return FAILED;
+		return FAILING;
 	}
 
 	return SUCCESS;

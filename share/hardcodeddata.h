@@ -18,15 +18,10 @@
 #define GUESS_OFFSET 6
 #define RESULT_OFFSET 12
 
-#define FAILED -1
+#define FAILING -1
 #define DISCONNECTED -2
 #define MAIN_MENU 1
 #define GAME_STILL_ON 2
 #define QUIT 3
-
-static LPCSTR lockEvent_name = _T("lockEvent");
-static LPCSTR syncEvent_name = _T("syncEvent");
-static LPCSTR FailureEvent_name = _T("Failure");
-static LPCWSTR sharedFileName = _T("GameSession.txt");
 
 #endif // !HARDCODEDDATA_H

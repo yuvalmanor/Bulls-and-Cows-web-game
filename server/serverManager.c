@@ -1,7 +1,7 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include "serverManager.h"
 
-int serverManager(int portNumber){
+int serverManager(int portNumber) {
 	SOCKET MainSocket = INVALID_SOCKET;
 	ThreadParam* threadParams[MAX_NUM_OF_PLAYERS+2] = { NULL, NULL, NULL, NULL};
 	unsigned long Address;
@@ -66,7 +66,7 @@ int serverManager(int portNumber){
 	printf("listening to IP: %s port %d\n", LOCALHOST, portNumber);
 
 	//Create syncronization mechanisms
-	if (FAILED == createEvents(&lockEvent, &syncEvent, &FailureEvent)) {
+	if (FAILING == getEvents(&lockEvent, &syncEvent, &FailureEvent)) {
 		ServerMainFreeResources(MainSocket, threadParams);
 		return -1;
 	}
@@ -123,7 +123,6 @@ int serverManager(int portNumber){
 	ServerMainFreeResources(MainSocket, threadParams);
 }
 
-
 ThreadParam* initThreadParam(SOCKET socket, int index, int* players) {
 	ThreadParam* p_threadparams = NULL;
 	if (NULL == (p_threadparams = (ThreadParam*)malloc(sizeof(ThreadParam)))) {
@@ -134,7 +133,6 @@ ThreadParam* initThreadParam(SOCKET socket, int index, int* players) {
 	p_threadparams->p_players = players;
 	return p_threadparams;
 }
-
 
 int ServerMainFreeResources(SOCKET MainSocket, ThreadParam** threadParams) { //Add all events and close handles
 	if (NULL != MainSocket) {

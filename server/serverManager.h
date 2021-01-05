@@ -11,18 +11,18 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "hardcodeddata.h"
-#include "servicethread.h"
 #include "serverFullThread.h"
 #include "WinsockFunc.h"
 
 //#define EVENT_NAME "Event_1"
 
-ThreadParam* initThreadParam(SOCKET socket, int index, int* players);
-
 int serverManager(int portNumber);
 
-void TerminateServiceThreads(HANDLE* threadHandles, SOCKET* threadInputs);
+ThreadParam* initThreadParam(SOCKET socket, int index, int* players);
+
+int ServerMainFreeResources(SOCKET MainSocket, ThreadParam** threadParams);
+
+void TerminateServiceThreads(HANDLE* threadHandles, SOCKET* threadParams);
 
 int FindFirstUnusedThreadSlot(HANDLE* threadHandles);
 

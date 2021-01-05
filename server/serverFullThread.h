@@ -2,6 +2,6 @@
 #define SERVERFULLTHREAD_H
 #include "servicethread.h"
 
-DWORD ServerFullThread(SOCKET* t_socket);
+DWORD ServerFullThread(ThreadParam* lpParam);
 
 #endif // !SERVERFULLTHREAD_H
