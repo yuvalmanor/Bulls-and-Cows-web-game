@@ -9,7 +9,7 @@ int serverManager(int portNumber) {
 	int bindRes;
 	int ListenRes;
 	int index;
-	int players = 0;
+	int players = 0, PlayersCount = 0;
 	HANDLE threadHandles[MAX_NUM_OF_PLAYERS+2] = { NULL, NULL, NULL, NULL };
 	HANDLE lockEvent = NULL, syncEvent = NULL, FailureEvent = NULL;
 	//<--------Initialize Winsock------->
@@ -24,7 +24,7 @@ int serverManager(int portNumber) {
 	{
 		//Free resources, WSACleanup and end program with -1
 		printf("Error at socket( ): %ld\n", WSAGetLastError());
-		ServerMainFreeResources(NULL, threadParams);
+		ServerMainFreeResources(NULL, threadParams, NULL, NULL, NULL);
 		return -1;
 	}
 
@@ -35,7 +35,7 @@ int serverManager(int portNumber) {
 	{
 		printf("The string \"%s\" cannot be converted into an ip address. ending program.\n",
 			LOCALHOST);
-		ServerMainFreeResources(MainSocket, threadParams);
+		ServerMainFreeResources(MainSocket, threadParams, NULL, NULL, NULL);
 		return -1;
 	}
 	service.sin_family = AF_INET;
@@ -49,7 +49,7 @@ int serverManager(int portNumber) {
 	if (bindRes == SOCKET_ERROR)
 	{
 		printf("bind( ) failed with error %ld. Ending program\n", WSAGetLastError());
-		ServerMainFreeResources(MainSocket, threadParams);
+		ServerMainFreeResources(MainSocket, threadParams, NULL, NULL, NULL);
 		return -1;
 	}
 	printf("socket bounded.\n");
@@ -60,14 +60,14 @@ int serverManager(int portNumber) {
 	{		
 		//Free resources: close socket, free address struct(?), WASCleanup, return -1
 		printf("Failed listening on socket, error %ld.\n", WSAGetLastError());
-		ServerMainFreeResources(MainSocket, threadParams);
+		ServerMainFreeResources(MainSocket, threadParams, NULL, NULL, NULL);
 		return -1;
 	}
 	printf("listening to IP: %s port %d\n", LOCALHOST, portNumber);
 
 	//Create syncronization mechanisms
 	if (NOT_SUCCESS == getEvents(&lockEvent, &syncEvent, &FailureEvent)) {
-		ServerMainFreeResources(MainSocket, threadParams);
+		ServerMainFreeResources(MainSocket, threadParams, NULL, NULL, NULL);
 		return -1;
 	}
 	//start polling for exit with a thread - it asks the threads to finish politly
@@ -80,14 +80,14 @@ int serverManager(int portNumber) {
 		if (AcceptSocket == INVALID_SOCKET) //How should we handle this? close the program or continue as usual?
 		{
 			printf("Accepting connection with client failed, error %ld\n", WSAGetLastError());
-			//TerminateServiceThreads(threadHandles, threadParams); //Is this necessary?
+			//TerminateServiceThreads(threadHandles, threadParams, lockEvent, syncEvent, FailureEvent); //Is this necessary?
 		}
 		printf("Client Connected.\n");
 
 		//Get the index of the first unused slot
 		index = FindFirstUnusedThreadSlot(threadHandles); //Doesn't seem to work - WFSO returns 0 and doesn't timeout
 
-		threadParams[index] = initThreadParam(AcceptSocket, index, &players); //initialize parameters for this thread
+		threadParams[index] = initThreadParam(AcceptSocket, index, &players, &PlayersCount); //initialize parameters for this thread
 		if (threadParams[index] == NULL) { //If this fails, close the socket and wait for another client
 			closesocket(AcceptSocket);
 			continue;
@@ -120,10 +120,10 @@ int serverManager(int portNumber) {
 	} //!while(1)
 	printf("We shouldn't be here\n");
 	//How do we ensure that the program will end nicely?
-	ServerMainFreeResources(MainSocket, threadParams);
+	TerminateServiceThreads(threadHandles, threadParams, lockEvent, syncEvent, FailureEvent);
 }
 
-ThreadParam* initThreadParam(SOCKET socket, int index, int* players) {
+ThreadParam* initThreadParam(SOCKET socket, int index, int* players, int* PlayersCount) {
 	ThreadParam* p_threadparams = NULL;
 	if (NULL == (p_threadparams = (ThreadParam*)malloc(sizeof(ThreadParam)))) {
 		printf("Fatal error: memory allocation failed (ThreadParam).\n");
@@ -131,6 +131,7 @@ ThreadParam* initThreadParam(SOCKET socket, int index, int* players) {
 	}
 	p_threadparams->socket = socket;
 	p_threadparams->p_players = players;
+	p_threadparams->p_PlayersCount = PlayersCount;
 	return p_threadparams;
 }
 

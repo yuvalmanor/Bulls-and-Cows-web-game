@@ -25,7 +25,7 @@ int playGame(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* i
 		}
 		printf("Got SERVER_MAIN_MENU\n");
 		free(p_serverMsg);
-		while (1) {
+		while (1) { //I changed the case of START_AGAIN to continue, is this ok?
 			choice = menu(MAIN, ip, 0);
 			if (1 == choice) {
 				status = start(c_socket); //
@@ -34,7 +34,7 @@ int playGame(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* i
 				else if (SUCCESS == status)
 					continue;
 				else if (START_AGAIN == status)
-					break;
+					continue;
 			}
 			else if (2 == choice) {
 				p_clientMsg = prepareMsg("CLIENT_DISCONNECT", NULL);
@@ -43,7 +43,7 @@ int playGame(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* i
 				free(p_clientMsg);
 				if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) break;
 				else if (TRNS_FAILED == status) return NOT_SUCCESS;
-				return NOT_SUCCESS;
+				return NOT_SUCCESS; //But isn't it ok that the player asked to quit?
 			}
 		}
 	}
@@ -121,7 +121,17 @@ int start(SOCKET c_socket) {
 	else {
 		free(p_serverMsg);
 		printf("No opponents were found.\n");
+		printf("Getting main menu from server\n");
+		status = getMessage(c_socket, &p_serverMsg, 15000);
+		if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return START_AGAIN;
+		else if (TRNS_FAILED == status) return NOT_SUCCESS;
+		if (!strcmp(p_serverMsg->type, "MAIN_MENU")) {
+			free(p_serverMsg);
+			printf("Expected MAIN_MENU, got %s\n", p_serverMsg->type);
+			return NOT_SUCCESS;
 		return START_AGAIN;
+
+		}
 	}
 	
 

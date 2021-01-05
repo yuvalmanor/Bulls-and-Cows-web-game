@@ -19,6 +19,7 @@ DWORD ServiceThread(void* lpParam) {
 	SOCKET socket = p_param->socket;
 	int playerOne, retVal, threadRetVal = 0, gameStatus = MAIN_MENU;
 	int *p_players = p_param->p_players;
+	int* p_PlayersCount = p_param->p_PlayersCount;
 	char* username = NULL, * otherUsername = NULL, * secretNum = NULL;
 	char* otherSecretNum = NULL, *guess, *otherGuess, p_msg = NULL;
 	Message* message = NULL;
@@ -36,7 +37,6 @@ DWORD ServiceThread(void* lpParam) {
 	}
 	 // TODO: Add checkings of return values to the next 4 lines
 	waitcode = WaitForSingleObject(lockEvent, LOCKEVENT_WAITTIME);
-	ResetEvent(lockEvent);
 	(*p_players)++;
 	SetEvent(lockEvent);
 
@@ -47,7 +47,15 @@ DWORD ServiceThread(void* lpParam) {
 			if (retVal == MAIN_MENU) {
 				continue;
 			}
-			printf("Main_menu failed\n");
+			if (playerOne) {
+				DeleteFile(sharedFile_name);
+			if (retVal == QUIT) {
+				printf("Player opted to quit\nLeaving game\n");
+			}
+				
+				printf("Main_menu failed\n");
+			
+			}
 			break;
 		}
 		printf("I am %s\nOther player is %s\n", username, otherUsername);
@@ -107,10 +115,6 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_players,
 		printf("Waitcode is %d\nError code %d while waiting for lockEvent\n", waitcode, GetLastError());
 		return NOT_SUCCESS;
 	}
-	if (!ResetEvent(lockEvent)) { //lock lockEvent
-		printf("ResetEvent failed %d\n", GetLastError());
-		return NOT_SUCCESS;
-	}
 	if (*p_players != 2) {
 		if (!SetEvent(lockEvent)) { //release lockEvent
 			printf("SetEvent failed %d\n", GetLastError());
@@ -132,8 +136,8 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_players,
 	if (h_sharedFile == INVALID_HANDLE_VALUE) {
 		if (!SetEvent(lockEvent)) { //release lockEvent
 			printf("SetEvent failed %d\n", GetLastError());
-			return NOT_SUCCESS;
 		}
+		return NOT_SUCCESS;
 	}
 	printf("PlayerOne = %d\n", *playerOne); //DEBUG
 	if (!*playerOne) {
@@ -189,8 +193,8 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_players,
 			CloseHandle(h_sharedFile);
 			return NOT_SUCCESS;
 		}
-		return GAME_STILL_ON;
 	}
+	return GAME_STILL_ON;
 }
 
 
@@ -239,7 +243,7 @@ LOOP:{
 				validate the message
 				continue; //go back to main menu
 			else{
-				gameStatus = FAILED;
+				gameStatus = NOT_SUCCESS;
 				break; //leave program
 			}
 		}
@@ -326,12 +330,12 @@ LOOP:{
 /*
 		int otherPlayerLeftGame(SOCKET socket, int* p_players, Message* message){
 			waitcode = waitForSingleObject(lockEvent, waittime):
-				checkwaitcode() -> avoid deadlocks. if waitcode is not 0, game is off
-			if (*(p_players) != 2 || message->type == "SERVER_OPPONENT_QUIT"){
-				release(lockEvent);
+			if (waitcode != WAIT_OBJECT_0)
+			if (*(p_players) != 2){
+				SetEvent(lockEvent);
 				return 0;
 			}
-			release(lockEvent);
+			SetEvent(lockEvent);
 			return 1;
 		}
 		
@@ -364,6 +368,30 @@ LOOP:{
 			validate message sent -> if not return FAILED
 			return GAME_STILL_ON
 		}
+
+
+
+	Manager:
+			lockEvent- Auto -> Signaled
+			syncEvent - Manual->  Non-Signaled
+			PlayerCount = 0
+
+<-------------------HOW TO USE SYNCTWOTHREADS():---------------------->
+	ServiceThread:
+		Do something
+
+		retVal = syncTwoThreads(p_PlayerCount, lockEvent, syncEvent);
+		if (retVal == NOT_SUCCESS){
+			return NOT_SUCCESS;
+		}
+		else if (retVal == DISCONNECTED){
+			ResetEvent(syncEvent);
+			SetEvent(lockEvent)
+			Playersount = 0;
+			return DISCONNECTED;
+		}
+<-------------------!HOW TO USE SYNCTWOTHREADS():---------------------->
+
 		*/
 
 int getUserNameAndApproveClient(SOCKET socket, char** username) {
@@ -543,4 +571,42 @@ int getEvents(HANDLE* lockEvent, HANDLE* syncEvent, HANDLE* FailureEvent) // CHE
 	}
 
 	return SUCCESS;
+}
+
+int SyncTwoThreads(int* p_PlayersCount, HANDLE lockEvent, HANDLE syncEvent) {
+	DWORD waitcode;
+	waitcode = WaitForSingleObject(lockEvent, LOCKEVENT_WAITTIME);
+	if (waitcode != WAIT_OBJECT_0) {
+		if (waitcode == WAIT_TIMEOUT) { return DISCONNECTED; }
+		else { return NOT_SUCCESS; }
+	}
+	// < ------ - safe zone------->
+		(*p_playersCount)++;
+	if (*p_playersCount == 2) {
+		SetEvent(syncEvent);
+	}
+	SetEvent(lockEvent);
+	//<--------end of safe zone------>
+
+		WaitForSingleObject(syncEvent, LOCKEVENT_WAITTIME);
+	if (waitcode != WAIT_OBJECT_0) {
+		if (waitcode == WAIT_TIMEOUT) { return DISCONNECTED; }
+	}
+	else { return NOT_SUCCESS; }
+
+	WaitForSingleObject(lockEvent, LOCKEVENT_WAITTIME);
+	if (waitcode != WAIT_OBJECT_0) {
+		if (waitcode == WAIT_TIMEOUT) { return DISCONNECTED; }
+	}
+	else { return NOT_SUCCESS; }
+
+	//<------- safe zone ------->
+	(*p_playersCount)--;
+	if (*p_playersCount == 0) {
+		ResetEvent(syncEvent);
+	}
+	SetEvent(lockEvent);
+	//<-------- end of safe zone------>
+
+	return GAME_STILL_ON;
 }

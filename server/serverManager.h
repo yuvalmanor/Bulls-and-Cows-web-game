@@ -18,7 +18,7 @@
 
 int serverManager(int portNumber);
 
-ThreadParam* initThreadParam(SOCKET socket, int index, int* players);
+ThreadParam* initThreadParam(SOCKET socket, int index, int* players, int* PlayersCount);
 
 int ServerMainFreeResources(SOCKET MainSocket,
 	ThreadParam** threadParams,
