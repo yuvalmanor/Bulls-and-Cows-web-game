@@ -1,6 +1,6 @@
 #include "Part2.h"
 
-int startGame(SOCKET socket, HANDLE h_sharedFile) {
+int startGame(SOCKET socket, HANDLE h_sharedFile, int playerOne) {
 	int status;
 	char* p_serverMsg = NULL, * p_opponentGuess = NULL, * p_userNum = NULL;
 	Message* p_clientMsg = NULL;
@@ -15,7 +15,7 @@ int startGame(SOCKET socket, HANDLE h_sharedFile) {
 	free(p_serverMsg);
 	if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return DISCONNECTED; //what happan if send/recv disconnect\timeout?
 	else if (TRNS_FAILED == status) return NOT_SUCCESS;
-	status = getMessage(socket, &p_clientMsg, 30000);
+	status = getMessage(socket, &p_clientMsg, 30000); //need to check if waitTime is correct
 	if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return DISCONNECTED;
 	else if (TRNS_FAILED == status) return NOT_SUCCESS;
 	if (strcmp(p_clientMsg->type, "CLIENT_SETUP")) {
@@ -23,8 +23,11 @@ int startGame(SOCKET socket, HANDLE h_sharedFile) {
 		return NOT_SUCCESS;
 	}
 	p_userNum = p_clientMsg->guess;
+	status = writeToFile(h_sharedFile, SECRETNUM_OFFSET, p_userNum, playerOne, 0);
+	if (NOT_SUCCESS == status) return NOT_SUCCESS;
 
 }
+
 
 char* getResults(char* username, char* opponentName, char* userNum, char* opponentGuess, char* opponentNum) {
 	char* p_resultMsg = NULL, c_bulls, c_cows;
@@ -90,8 +93,8 @@ char* getResults(char* username, char* opponentName, char* userNum, char* oppone
 #validate message received -> if not, leaveGame() break;
 #if message->type != CLIENT_SETUP->leaveGame() break;
 #secretNum = message->guess
-retVal = writeSecretNumToFile(h_file, playerOne, secretNum);--->Why we need function for every writing?
-check if retVal suceeded										why not one function for all writes?
+#retVal = writeSecretNumToFile(h_file, playerOne, secretNum);--->Why we need function for every writing?
+#check if retVal suceeded										why not one function for all writes?
 if (otherPlayerLeftGame()) {
 	send SERVER_OPPONENT_QUIT
 		go back to main menu
@@ -145,12 +148,32 @@ while (1) {
 closesocket(socket);
 return threadRetVal;
 */
+int opponentLeftGame(SOCKET socket, int* p_players, HANDLE lockEvent) {
+	DWORD waitCode;
+	char* p_serverMsg = NULL;
+	int status;
+
+	waitCode = waitForSingleObject(lockEvent, LOCKEVENT_WAITTIME);
+	if (WAIT_OBJECT_0 != waitCode) {
+		int x = 5;
+	}
+	if (*p_players != 2) {
+		p_serverMsg = prepareMsg("SERVER_NO_OPPONENTS", NULL);
+		if (NULL == p_serverMsg) return NOT_SUCCESS;
+		status = SendString(p_serverMsg, socket);
+		free(p_serverMsg);
+		if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return DISCONNECTED; //what happan if send/recv disconnect\timeout?
+		else if (TRNS_FAILED == status) return NOT_SUCCESS;
+		SetEvent(lockEvent);
+
+	}
+}
 /*
 		int otherPlayerLeftGame(SOCKET socket, int* p_players, Message* message){
 			waitcode = waitForSingleObject(lockEvent, waittime):
 				checkwaitcode() -> avoid deadlocks. if waitcode is not 0, game is off
 			if (*(p_players) != 2 || message->type == "SERVER_OPPONENT_QUIT"){
-				release(lockEvent);
+				
 				return 0;
 			}
 			release(lockEvent);
