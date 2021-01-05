@@ -34,7 +34,7 @@ DWORD ServiceThread(void* lpParam) {
 		leaveGame(socket, lockEvent, NULL, NULL, NULL);
 		return FAILING;
 	}
-
+	 // TODO: Add checkings of return values to the next 4 lines
 	waitcode = WaitForSingleObject(lockEvent, LOCKEVENT_WAITTIME);
 	ResetEvent(lockEvent);
 	(*p_players)++;
@@ -42,7 +42,14 @@ DWORD ServiceThread(void* lpParam) {
 
 	// <-------- entering game loop ------->
 	while (1) {
-		Main_menu(socket, lockEvent, syncEvent, p_players, &playerOne, username, &otherUsername);
+		retVal = Main_menu(socket, lockEvent, syncEvent, p_players, &playerOne, username, &otherUsername);
+		if (retVal != GAME_STILL_ON) {
+			if (retVal == MAIN_MENU) {
+				continue;
+			}
+			printf("Main_menu failed\n");
+			break;
+		}
 		printf("I am %s\nOther player is %s\n", username, otherUsername);
 		
 		// <--------- PART 2 --------->
@@ -50,7 +57,11 @@ DWORD ServiceThread(void* lpParam) {
 
 	} // !while(1)
 
-	
+	free(username);
+	waitcode = WaitForSingleObject(lockEvent, LOCKEVENT_WAITTIME);
+	ResetEvent(lockEvent);
+	(*p_players)--;
+	SetEvent(lockEvent);
 	printf("leaving game.\n");
 	closesocket(socket);
 	return 0;
@@ -79,11 +90,11 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_players,
 		else
 			return FAILING;
 	}
-	if (strcmp(message->type, "CLIENT_DISCONNECT")) { //If client chose to quit
+	if (!strcmp(message->type, "CLIENT_DISCONNECT")) { //If client chose to quit
 		free(message);
 		return QUIT;
 	}
-	else if (!strcmp(message->type, "CLIENT_VERSUS")) {//If an invalid response
+	else if (strcmp(message->type, "CLIENT_VERSUS")) {//If an invalid response
 		free(message);
 		return FAILING;
 	}
@@ -178,6 +189,7 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_players,
 			CloseHandle(h_sharedFile);
 			return FAILING;
 		}
+		return GAME_STILL_ON;
 	}
 }
 
