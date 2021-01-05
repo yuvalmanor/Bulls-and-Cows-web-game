@@ -18,7 +18,7 @@
 #define GUESS_OFFSET 6
 #define RESULT_OFFSET 12
 
-#define FAILING -1
+
 #define DISCONNECTED -2
 #define MAIN_MENU 1
 #define GAME_STILL_ON 2

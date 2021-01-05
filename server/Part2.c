@@ -13,10 +13,10 @@ int startGame(SOCKET socket, HANDLE h_sharedFile) {
 	if (NULL == p_serverMsg) return NOT_SUCCESS;
 	status = SendString(p_serverMsg, socket);
 	free(p_serverMsg);
-	if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return DISCONNECTION; //what happan if send/recv disconnect\timeout?
+	if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return DISCONNECTED; //what happan if send/recv disconnect\timeout?
 	else if (TRNS_FAILED == status) return NOT_SUCCESS;
 	status = getMessage(socket, &p_clientMsg, 30000);
-	if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return DISCONNECTION;
+	if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return DISCONNECTED;
 	else if (TRNS_FAILED == status) return NOT_SUCCESS;
 	if (strcmp(p_clientMsg->type, "CLIENT_SETUP")) {
 		free(p_clientMsg);
@@ -26,7 +26,7 @@ int startGame(SOCKET socket, HANDLE h_sharedFile) {
 
 }
 
-char* getResults(char* username, char* opponentName, char* userNum, char* opponentGuess, char* opponentNum){
+char* getResults(char* username, char* opponentName, char* userNum, char* opponentGuess, char* opponentNum) {
 	char* p_resultMsg = NULL, c_bulls, c_cows;
 	int messageLen = 0, bulls = 0, cows = 0, i = 0, indexDiff;
 
@@ -85,11 +85,11 @@ char* getResults(char* username, char* opponentName, char* userNum, char* oppone
 			go back to main menu
 	}
 #send SERVER_SETUP_REQUSET
-validate message sent -> if not, leaveGame() break;
-getMessage()
-validate message received -> if not, leaveGame() break;
-if message->type != CLIENT_SETUP->leaveGame() break;
-secretNum = message->guess
+#validate message sent -> if not, leaveGame() break;
+#getMessage()
+#validate message received -> if not, leaveGame() break;
+#if message->type != CLIENT_SETUP->leaveGame() break;
+#secretNum = message->guess
 retVal = writeSecretNumToFile(h_file, playerOne, secretNum);--->Why we need function for every writing?
 check if retVal suceeded										why not one function for all writes?
 if (otherPlayerLeftGame()) {

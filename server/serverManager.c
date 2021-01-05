@@ -66,7 +66,7 @@ int serverManager(int portNumber) {
 	printf("listening to IP: %s port %d\n", LOCALHOST, portNumber);
 
 	//Create syncronization mechanisms
-	if (FAILING == getEvents(&lockEvent, &syncEvent, &FailureEvent)) {
+	if (NOT_SUCCESS == getEvents(&lockEvent, &syncEvent, &FailureEvent)) {
 		ServerMainFreeResources(MainSocket, threadParams);
 		return -1;
 	}
