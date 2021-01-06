@@ -2,7 +2,7 @@
 
 int startGame(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncEvent, int playerOne, int* p_players, char* username, char* opponentName) {
 	int status;
-	char* p_serverMsg = NULL, * p_opponentGuess = NULL, * p_userNum = NULL, *p_opponentNum=NULL, p_userGuess=NULL;
+	char* p_serverMsg = NULL, * p_opponentGuess = NULL, * p_userNum = NULL, *p_opponentNum=NULL, *p_userGuess=NULL;
 	Message* p_clientMsg = NULL;
 
 	status = opponentLeftGame(socket, p_players, lockEvent); 
@@ -49,13 +49,13 @@ int startGame(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncE
 	while (1) {
 		status = opponentLeftGame(socket, p_players, lockEvent);
 		if (GAME_STILL_ON != status) {
-			freeMemory(p_userNum, p_opponentNum, NULL, NULL);
+			freeMemory(p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
 			return status;
 		}
 		//<---send SERVER_PLAYER_MOVE_REQUEST--->
 		p_serverMsg = prepareMsg("SERVER_PLAYER_MOVE_REQUEST", NULL);
 		if (NULL == p_serverMsg) {
-			freeMemory(p_userNum, p_opponentNum, NULL, NULL);
+			freeMemory(p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
 			return NOT_SUCCESS;
 		}
 		status = SendString(p_serverMsg, socket);
@@ -66,7 +66,7 @@ int startGame(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncE
 			else if (TRNS_FAILED == status) return NOT_SUCCESS;
 		}
 		//<---recive message from client (CLIENT_PLAYER_MOVE)--->
-		status = getMessage(socket, &p_clientMsg, 30000); //need to check if waitTime is correct, shouldnt be 10MIN?
+		status = getMessage(socket, &p_clientMsg, USER_WAITTIME); //need to check if waitTime is correct, shouldnt be 10MIN?
 		if (TRNS_SUCCEEDED != status) {
 			freeMemory(p_userNum, p_opponentNum, NULL, NULL);
 			if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return DISCONNECTED;
@@ -77,42 +77,76 @@ int startGame(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncE
 			free(p_clientMsg);
 			return NOT_SUCCESS;
 		}
-		p_userGuess = p_clientMsg->guess;
+		if(NULL!=p_userGuess)
+			p_userGuess = p_clientMsg->guess;
 		free(p_clientMsg);
 		//<---write user guess to shared file--->
 		status = writeToFile(h_sharedFile, GUESS_OFFSET, p_userGuess, playerOne, 0);
 		if (NOT_SUCCESS == status) {
-			freeMemory(p_userNum, p_opponentNum, p_userGuess, NULL);
+			freeMemory(p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
 			return NOT_SUCCESS;
 		}
 		//<---wait that opponent thread write his guess to shared file--->
 		status = SyncTwoThreads(p_players, lockEvent, syncEvent, USER_WAITTIME);
 		if (GAME_STILL_ON != status) {
-			freeMemory(p_userNum, p_opponentNum, p_userGuess, NULL);
+			freeMemory(p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
 			return status;
 		}
 		//<---read opponent guess from shared file--->
 		if (NOT_SUCCESS == readFromFile(h_sharedFile, GUESS_OFFSET, &p_opponentGuess, playerOne, 0)) {
-			freeMemory(p_userNum, p_opponentNum, p_userGuess, NULL);
+			freeMemory(p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
 			return NOT_SUCCESS;
+		}
+		//<---calculate game results--->
+		status = getResults(&p_serverMsg, username, opponentName, p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
+		if (NOT_SUCCESS == status) {
+			freeMemory(p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
+			return NOT_SUCCESS;
+		}
+		//<---if there is no winner or tie--->
+		if (GAME_STILL_ON == status)
+			continue;
+		//<---if someone won or its a tie--->
+		if (MAIN_MENU == status) {
+			freeMemory(p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
+			return MAIN_MENU;
 		}
 	}
 }
 
 
-char* getResults(char* username, char* opponentName, char* userNum, char* opponentNum,char* userGuess, char* opponentGuess) {
+int getResults(char** resultMsg, char* username, char* opponentName, char* userNum, char* opponentNum,char* userGuess, char* opponentGuess) {
 	char* p_resultMsg = NULL, c_bulls, c_cows;
-	int messageLen = 0, bulls = 0, cows = 0, i = 0, indexDiff, status;
+	int messageLen = 0, bulls = 0, cows = 0, i = 0, indexDiff, userStatus=-1, opponentStatus=-1;
 
 	//call to function which will check if user won - need to read it from file
-	//<---In case of user WIN--->
-	status = winnerCheck(&p_resultMsg, userNum, opponentNum, userGuess, username);
-	if (NOT_SUCCESS == status) return NOT_SUCCESS;
-	if (TRUE == status) return p_resultMsg;
-	//<---In case of opponent WIN--->
-	status = winnerCheck(&p_resultMsg, opponentNum, userNum, opponentGuess, opponentName);
-	if (NOT_SUCCESS == status) return NOT_SUCCESS;
-	if (TRUE == status) return p_resultMsg;
+	//<---check if user have 4 bulls--->
+	if (!strcmp(opponentNum, userGuess))
+		userStatus = WIN;
+	//<---check if opponent have 4 bulls--->
+	if (!strcmp(userNum, opponentGuess))
+		opponentStatus = WIN;
+	//<---check if TIE--->
+	if (WIN == userStatus && WIN == opponentStatus) {
+		p_resultMsg = prepareMsg("SERVER_DRAW", NULL);
+		if (NULL == p_resultMsg) return NOT_SUCCESS;
+		*resultMsg = p_resultMsg;
+		return MAIN_MENU;
+	}
+	//<---in case of user WIN--->
+	else if (WIN == userStatus && WIN != opponentStatus) {
+		p_resultMsg = winMsg(opponentNum, username);
+		if (NULL == p_resultMsg) return NOT_SUCCESS;
+		*resultMsg = p_resultMsg;
+		return MAIN_MENU;
+	}
+	//<---in case of opponent WIN--->
+	else if (WIN != userStatus && WIN == opponentStatus) {
+		p_resultMsg = winMsg(userNum, opponentName);
+		if (NULL == p_resultMsg) return NOT_SUCCESS;
+		*resultMsg = p_resultMsg;
+		return MAIN_MENU;
+	}
 	else //In case no winner yet
 	{
 		for (i = 0; i < 4; i++) { //calculate number of bulls and cows
@@ -131,7 +165,7 @@ char* getResults(char* username, char* opponentName, char* userNum, char* oppone
 		messageLen = strlen("SERVER_GAME_RESULTS:") + strlen(opponentName) + strlen(opponentGuess) + 7; /*7 for bulls,cows,3*;,\n,\0*/
 		if (NULL == (p_resultMsg = malloc(messageLen))) {
 			printf("Fatal error: memory allocation failed (getResults).\n");
-			return NULL;
+			return NOT_SUCCESS;
 		}
 		strcpy_s(p_resultMsg, messageLen, "SERVER_GAME_RESULTS:");
 		strncat_s(p_resultMsg, messageLen, &c_bulls, 1);
@@ -142,17 +176,23 @@ char* getResults(char* username, char* opponentName, char* userNum, char* oppone
 		strcat_s(p_resultMsg, messageLen, ";");
 		strcat_s(p_resultMsg, messageLen, opponentGuess);
 		strcat_s(p_resultMsg, messageLen, "\n");
-		return p_resultMsg;
+		*resultMsg = p_resultMsg;
+		return GAME_STILL_ON;
 	}
 }
+//need to handle TIMEOUT situation inside opponentLeftGame.
 int opponentLeftGame(SOCKET socket, int* p_players, HANDLE lockEvent) {
 	DWORD waitCode;
 	char* p_serverMsg = NULL;
 	int status;
 
-	waitCode = waitForSingleObject(lockEvent, LOCKEVENT_WAITTIME);
+	waitCode = WaitForSingleObject(lockEvent, LOCKEVENT_WAITTIME);
 	if (WAIT_OBJECT_0 != waitCode) {
-		int x = 5;
+		if (WAIT_FAILED == waitCode) {
+			printf("waitForSingleObject error(opponentLeftGame). Error code: %d.\n", GetLastError());
+			return NOT_SUCCESS;
+		}
+		//if(WAIT_TIMEOUT==waitCode)?
 	}
 	if (*p_players != 2) {
 		p_serverMsg = prepareMsg("SERVER_NO_OPPONENTS", NULL);
@@ -184,25 +224,22 @@ void freeMemory(char* userNum, char* opponentNum, char* userGuess, char* opponen
 	if (NULL != opponentNum)
 		free(opponentNum);
 }
-int winnerCheck(char** resultMsg, char* winnerSecretNum, char* loserSecretNum, char* Guess, char* name) {
+char* winMsg(char* opponentNum, char* winnerName) {
 	char* p_resultMsg = NULL;
 	int messageLen;
-	if (!strcmp(loserSecretNum, Guess)) {
-		messageLen = strlen("SERVER_WIN:") + strlen(name) + strlen(winnerSecretNum) + 3; //+3 for ;,\n,\0
-		if (NULL == (p_resultMsg = malloc(messageLen))) {
-			printf("Fatal error: memory allocation failed (winnerCheck).\n");
-			return NOT_SUCCESS;
-		}
-		strcpy_s(p_resultMsg, messageLen, "SERVER_WIN:");
-		strcat_s(p_resultMsg, messageLen, name);
-		strcat_s(p_resultMsg, messageLen, ";");
-		strcat_s(p_resultMsg, messageLen, winnerSecretNum);
-		strcat_s(p_resultMsg, messageLen, "\n");
-		*resultMsg = p_resultMsg;
-		return TRUE;
+	
+	messageLen = strlen("SERVER_WIN:") + strlen(winnerName) + strlen(opponentNum) + 3; //+3 for ;,\n,\0
+	if (NULL == (p_resultMsg = malloc(messageLen))) {
+		printf("Fatal error: memory allocation failed (winnerCheck).\n");
+		return NULL;
 	}
-	else
-		return FALSE;
+	strcpy_s(p_resultMsg, messageLen, "SERVER_WIN:");
+	strcat_s(p_resultMsg, messageLen, winnerName);
+	strcat_s(p_resultMsg, messageLen, ";");
+	strcat_s(p_resultMsg, messageLen, opponentNum);
+	strcat_s(p_resultMsg, messageLen, "\n");
+	return p_resultMsg;
+		
 }
 /*< -------------- - PART II--------------->
 #	There are two players and they know each other names
@@ -239,7 +276,7 @@ while (1) {
 #	if message->type != CLIENT_PLAYER_MOVE->gameStatus = FAILED, break;
 #	guess = message->guess
 	
-		IWin = getResult(guess, otherSecretNum, &result)
+		#IWin = getResult(guess, otherSecretNum, &result)
 		retVal = writeGuessAndResultToFile(h_file, playerOne, guess, result)<---MAYBE DO IT INSIDE getResults().
 		validate retVal is good -> if not, gameStatus = FAILED, break;
 	if (IWin) {
