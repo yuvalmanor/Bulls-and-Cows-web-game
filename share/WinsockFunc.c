@@ -12,6 +12,31 @@ int InitializeWinsock() {
 	}	
 	return SUCCESS;
 }
+int disconnect(SOCKET socket, char* buffer) {
+	int status;
+	
+	if (shutdown(socket, SD_SEND)) {
+		printf("Failed to shutdown, error %ld.\n", WSAGetLastError());
+		if (closesocket(socket))
+			printf("closesocket error (serverFullThread), error %ld.\n", WSAGetLastError());
+		free(buffer);
+		return NOT_SUCCESS;
+	}
+	status = ReceiveString(&buffer, socket, RESPONSE_WAITTIME);
+	free(buffer);
+	if (TRNS_DISCONNECTED != status) {
+		printf("Shutdown sequence failed. Closing socket.\n");
+		if (closesocket(socket))
+			printf("closesocket error (serverFullThread), error %ld.\n", WSAGetLastError());
+		return NOT_SUCCESS;
+	}
+	if (closesocket(socket)) {
+		printf("closesocket error (serverFullThread), error %ld.\n", WSAGetLastError());
+		return NOT_SUCCESS;
+	}
+	return SUCCESS;
+
+}
 
 /*SOCKADDR_IN initAddress(char* ip, int portNumber) {
 	SOCKADDR_IN service;

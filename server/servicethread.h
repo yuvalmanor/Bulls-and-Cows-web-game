@@ -13,6 +13,7 @@
 #include <string.h>
 #include "SocketSendRecvTools.h"
 #include "sharedMessagesProcess.h"
+#include "hardcodeddata.h"
 
 typedef struct ThreadParam {
 	SOCKET socket;

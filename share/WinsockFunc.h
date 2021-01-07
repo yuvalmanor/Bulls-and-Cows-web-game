@@ -11,7 +11,9 @@
 #include <stdio.h>
 #include <string.h>
 #include "hardcodeddata.h"
+#include "SocketSendRecvTools.h"
 
 int InitializeWinsock();
+int disconnect(SOCKET socket, char* buffer);
 //SOCKADDR_IN initAddress(char* ip, int portNumber);
 #endif // !WINSOCKFUNC_H

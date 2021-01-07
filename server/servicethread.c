@@ -166,7 +166,7 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_players,
 	}
 	//---->out of the critical section
 	if (*playerOne) {
-		waitcode = WaitForSingleObject(syncEvent, RESPONSE_WAITTIME);
+		waitcode = WaitForSingleObject(syncEvent, DOUBLE_RESPONSE_WAITTIME);
 		if (waitcode != WAIT_OBJECT_0) {
 			CloseHandle(h_sharedFile);
 			if (waitcode == WAIT_TIMEOUT) { //The other player did not respond within 30 seconds

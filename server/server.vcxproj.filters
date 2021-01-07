@@ -33,9 +33,6 @@
     <ClCompile Include="serverFullThread.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\share\SocketSendRecvTools.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\share\WinsockFunc.c">
       <Filter>Shared Source Files</Filter>
     </ClCompile>
@@ -47,6 +44,9 @@
     </ClCompile>
     <ClCompile Include="Part2.c">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\share\SocketSendRecvTools.c">
+      <Filter>Shared Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
