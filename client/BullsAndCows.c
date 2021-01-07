@@ -40,10 +40,15 @@ int playGame(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* i
 				p_clientMsg = prepareMsg("CLIENT_DISCONNECT", NULL);
 				if (NULL == p_clientMsg) return NOT_SUCCESS;
 				status = SendString(p_clientMsg, c_socket);
-				free(p_clientMsg);
-				if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) break;
-				else if (TRNS_FAILED == status) return NOT_SUCCESS;
-				return NOT_SUCCESS; //But isn't it ok that the player asked to quit?
+				if (TRNS_DISCONNECTED == status) {
+					free(p_clientMsg);
+					confirmShutdown(c_socket);
+					return SUCCESS;
+				}
+				if (TRNS_FAILED == status || TRNS_TIMEOUT == status) {
+					shutdownConnection(c_socket, p_clientMsg);
+					return SUCCESS;
+				}
 			}
 		}
 	}
@@ -107,7 +112,7 @@ int start(SOCKET c_socket) {
 	if (NULL == p_clientMsg) return NOT_SUCCESS;
 	status = SendString(p_clientMsg, c_socket);
 	free(p_clientMsg);
-	if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT==status) return START_AGAIN;
+	if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT==status) return START_AGAIN; //shouldnt return START_AGAIN.
 	else if (TRNS_FAILED == status) return NOT_SUCCESS;
 	status = getMessage(c_socket, &p_serverMsg, 30000);
 	if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return START_AGAIN;
@@ -242,8 +247,17 @@ int checkTRNSCode(int TRNSCode, char* ip, int portNumber, SOCKET c_socket, SOCKA
 		return NOT_SUCCESS;
 	}
 	else // (TRNSCode == TRNS_DISCONNECTED || TRNSCode == TRNS_TIMEOUT) 
-	{choice = menu(FAILURE, ip, portNumber);
+	{	
+		choice = menu(FAILURE, ip, portNumber);
+		if (TRNS_DISCONNECTED == TRNSCode) 
+			confirmShutdown(c_socket);
 		if (1 == choice) {
+			c_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+			if (c_socket == INVALID_SOCKET)
+			{
+				printf("Error at socket( ): %ld\n", WSAGetLastError());
+				return NOT_SUCCESS;
+			}
 			if (EXIT == makeConnection(c_socket, clientService, ip, portNumber))
 				return EXIT;
 			else

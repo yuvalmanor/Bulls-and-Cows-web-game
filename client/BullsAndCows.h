@@ -7,6 +7,7 @@
 #include "hardcodeddata.h"
 #include "SocketSendRecvTools.h"
 #include "sharedMessagesProcess.h"
+#include "WinsockFunc.h"
 
 #define CLIENT_MSG_NUM 5
 #define REQUEST_LEN 14

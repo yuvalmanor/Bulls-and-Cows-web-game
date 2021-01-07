@@ -44,7 +44,8 @@ DWORD ServerFullThread(ThreadParam* lpParam) {
 		printf("Socket closed.\n");
 		return NOT_SUCCESS;
 	}
-	return disconnect(socket, p_serverMsg);
+	shutdownConnection(socket, p_serverMsg);
+	return SUCCESS;
 
 
 }

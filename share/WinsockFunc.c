@@ -12,7 +12,7 @@ int InitializeWinsock() {
 	}	
 	return SUCCESS;
 }
-int disconnect(SOCKET socket, char* buffer) {
+void shutdownConnection(SOCKET socket, char* buffer) {
 	int status;
 	
 	if (shutdown(socket, SD_SEND)) {
@@ -20,7 +20,6 @@ int disconnect(SOCKET socket, char* buffer) {
 		if (closesocket(socket))
 			printf("closesocket error (serverFullThread), error %ld.\n", WSAGetLastError());
 		free(buffer);
-		return NOT_SUCCESS;
 	}
 	status = ReceiveString(&buffer, socket, RESPONSE_WAITTIME);
 	free(buffer);
@@ -28,14 +27,18 @@ int disconnect(SOCKET socket, char* buffer) {
 		printf("Shutdown sequence failed. Closing socket.\n");
 		if (closesocket(socket))
 			printf("closesocket error (serverFullThread), error %ld.\n", WSAGetLastError());
-		return NOT_SUCCESS;
 	}
-	if (closesocket(socket)) {
+	if (closesocket(socket)) 
 		printf("closesocket error (serverFullThread), error %ld.\n", WSAGetLastError());
-		return NOT_SUCCESS;
+}
+void confirmShutdown(SOCKET socket) {
+	if (shutdown(socket, SD_SEND)) {
+		printf("Failed to shutdown, error %ld.\n", WSAGetLastError());
+		if (closesocket(socket))
+			printf("closesocket error (serverFullThread), error %ld.\n", WSAGetLastError());
 	}
-	return SUCCESS;
-
+	if (closesocket(socket))
+		printf("closesocket error (serverFullThread), error %ld.\n", WSAGetLastError());
 }
 
 /*SOCKADDR_IN initAddress(char* ip, int portNumber) {
