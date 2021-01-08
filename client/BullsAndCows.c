@@ -11,7 +11,7 @@ int playGame(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* i
 			return EXIT;
 		}
 		printf("Getting SERVER_MAIN_MENU\n");
-		status = getMessage(c_socket, &p_serverMsg, 15000);
+		status = getMessage(c_socket, &p_serverMsg, RESPONSE_WAITTIME);
 		if (TRNS_SUCCEEDED != status) { //Yuval checked it. comment still here for flag the place
 			if (SUCCESS != checkTRNSCode(status, ip, portNumber, c_socket, clientService))
 				return NOT_SUCCESS;
@@ -28,7 +28,7 @@ int playGame(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* i
 		while (1) { //I changed the case of START_AGAIN to continue, is this ok?
 			choice = menu(MAIN, ip, 0);
 			if (1 == choice) {
-				status = start(c_socket); //
+				status = start(c_socket);
 				if (NOT_SUCCESS == status)
 					return NOT_SUCCESS;
 				else if (SUCCESS == status)
@@ -40,15 +40,12 @@ int playGame(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* i
 				p_clientMsg = prepareMsg("CLIENT_DISCONNECT", NULL);
 				if (NULL == p_clientMsg) return NOT_SUCCESS;
 				status = SendString(p_clientMsg, c_socket);
-				if (TRNS_DISCONNECTED == status) {
+				if (TRNS_FAILED == status) {
 					free(p_clientMsg);
-					confirmShutdown(c_socket);
-					return SUCCESS;
+					return NOT_SUCCESS;
 				}
-				if (TRNS_FAILED == status || TRNS_TIMEOUT == status) {
-					shutdownConnection(c_socket, p_clientMsg);
-					return SUCCESS;
-				}
+				shutdownConnection(c_socket, p_clientMsg);
+				return SUCCESS;
 			}
 		}
 	}
@@ -66,16 +63,15 @@ int setup(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* ip, 
 	{
 
 		status = SendString(p_clientMsg, c_socket);
-		free(p_clientMsg);
-		if (TRNS_SUCCEEDED != status) { //Yuval checked it. comment still here for flag the place
-			if (SUCCESS != checkTRNSCode(status, ip, portNumber, c_socket, clientService))
-				return NOT_SUCCESS;
-			else
-				continue;
+		if (TRNS_FAILED == status) {
+			free(p_clientMsg);
+			printf("send failed(setup)");
+			return NOT_SUCCESS;
 		}
 		printf("CLIENT_REQUEST sent\nHoping to get SERVER_APPROVED\n");
-		status = getMessage(c_socket, &p_serverMsg, 15000);
-		if (TRNS_SUCCEEDED != status) {
+		status = getMessage(c_socket, &p_serverMsg, RESPONSE_WAITTIME);
+		if (TRNS_SUCCEEDED != status) { //fix it to right handeling
+			free(p_clientMsg);
 			if (SUCCESS != checkTRNSCode(status, ip, portNumber, c_socket, clientService))
 				return NOT_SUCCESS;
 			else
@@ -83,13 +79,22 @@ int setup(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* ip, 
 		}
 		printf("Got message from server: %s\n", p_serverMsg->type);
 		if (!strcmp(p_serverMsg->type, "SERVER_APPROVED")) {
+			free(p_clientMsg);
 			free(p_serverMsg);
 			return SUCCESS;
 		}
 		else if (!strcmp(p_serverMsg->type, "SERVER_DENIED")) {
+			free(p_serverMsg->deniedReason);
 			free(p_serverMsg);
+			shutdownConnection(c_socket, p_clientMsg);
 			choice = menu(DENIED, ip, portNumber);
 			if (1 == choice) {
+				c_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+				if (c_socket == INVALID_SOCKET)
+				{
+					printf("Error at socket( ): %ld\n", WSAGetLastError());
+					return NOT_SUCCESS;
+				}
 				if (EXIT == makeConnection(c_socket, clientService, ip, portNumber))
 					return EXIT;
 				else
@@ -112,10 +117,9 @@ int start(SOCKET c_socket) {
 	if (NULL == p_clientMsg) return NOT_SUCCESS;
 	status = SendString(p_clientMsg, c_socket);
 	free(p_clientMsg);
-	if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT==status) return START_AGAIN; //shouldnt return START_AGAIN.
-	else if (TRNS_FAILED == status) return NOT_SUCCESS;
-	status = getMessage(c_socket, &p_serverMsg, 30000);
-	if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return START_AGAIN;
+	if (TRNS_FAILED == status) return NOT_SUCCESS;
+	status = getMessage(c_socket, &p_serverMsg, USER_WAITTIME);
+	if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return START_AGAIN;//need to change this to right handeling
 	else if (TRNS_FAILED == status) return NOT_SUCCESS;
 	if (!strcmp(p_serverMsg->type, "SERVER_INVITE")) {
 		free(p_serverMsg);
@@ -126,16 +130,14 @@ int start(SOCKET c_socket) {
 	else {
 		free(p_serverMsg);
 		printf("No opponents were found.\n");
-		printf("Getting main menu from server\n");
 		status = getMessage(c_socket, &p_serverMsg, 15000);
 		if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return START_AGAIN;
 		else if (TRNS_FAILED == status) return NOT_SUCCESS;
-		if (!strcmp(p_serverMsg->type, "MAIN_MENU")) {
+		if (strcmp(p_serverMsg->type, "SERVER_MAIN_MENU")) {
+			printf("Message invalid. This is the message recived: %s", p_serverMsg->type);
 			free(p_serverMsg);
-			printf("Expected MAIN_MENU, got %s\n", p_serverMsg->type);
 			return NOT_SUCCESS;
 		return START_AGAIN;
-
 		}
 	}
 	
@@ -147,16 +149,13 @@ int GameIsOn(SOCKET c_socket) {
 	Message* p_serverMsg = NULL;
 
 	printf("Game is on !\n");
-	status = getMessage(c_socket, &p_serverMsg, 15000);
-	if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return START_AGAIN;
+	status = getMessage(c_socket, &p_serverMsg, RESPONSE_WAITTIME);
+	if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return START_AGAIN;//need to change this
 	else if (TRNS_FAILED == status) return NOT_SUCCESS;
 	if (strcmp(p_serverMsg->type, "SERVER_SETUP_REQUEST")) {
-		if (START_AGAIN == opponentQuit(p_serverMsg->type)) {
-			free(p_serverMsg);
+		if (START_AGAIN == opponentQuit(p_serverMsg->type, p_serverMsg, c_socket))
 			return START_AGAIN;
-		}
 	}
-	free(p_serverMsg);
 	//<--- if message is SERVER_SETUP_REQUEST --->
 	printf("Choose your 4 digits:\n");
 	p_userChoice=chooseNumber();
@@ -165,32 +164,33 @@ int GameIsOn(SOCKET c_socket) {
 	if (NULL == p_clientMsg) return NOT_SUCCESS;
 	status= SendString(p_clientMsg, c_socket);
 	free(p_clientMsg);
-	if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status)return START_AGAIN;
-	else if (TRNS_FAILED == status) return NOT_SUCCESS;
-	status = getMessage(c_socket, &p_serverMsg, 15000);
-	if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return START_AGAIN;
+	if (TRNS_FAILED == status) return NOT_SUCCESS;
+	free(p_serverMsg);
+	status = getMessage(c_socket, &p_serverMsg, RESPONSE_WAITTIME);
+	if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return START_AGAIN;//need to change this
 	else if (TRNS_FAILED == status) return NOT_SUCCESS;
 
 	while (1) {
-		if (START_AGAIN == opponentQuit(p_serverMsg->type)) return START_AGAIN;
+		if (START_AGAIN == opponentQuit(p_serverMsg->type,p_serverMsg,c_socket)) return START_AGAIN;
 		//<--- if message is SERVER_PLAYER_MOVE_REQUEST --->
+		if (strcmp(p_serverMsg->type, "SERVER_PLAYER_MOVE_REQUEST")) {
+			printf("Message invalid. This is the message recived: %s", p_serverMsg->type);
+			free(p_serverMsg);
+			return NOT_SUCCESS;
+		}
 		printf("Choose your guess:\n");
 		p_guess = chooseNumber();
 		p_clientMsg = prepareMsg("CLIENT_PLAYER_MOVE:", p_guess);
 		free(p_guess);
+		free(p_serverMsg);
 		if (NULL == p_clientMsg) return NOT_SUCCESS;
 		status = SendString(p_clientMsg, c_socket);
 		free(p_clientMsg);
-		if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status)return START_AGAIN;
+		if (TRNS_FAILED == status) return NOT_SUCCESS;
+		status = getMessage(c_socket, &p_serverMsg, USER_WAITTIME);//USER_WAITTIME because server waits for opponent to enter his move
+		if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return START_AGAIN;//need to change this
 		else if (TRNS_FAILED == status) return NOT_SUCCESS;
-		free(p_serverMsg);
-		status = getMessage(c_socket, &p_serverMsg, 15000);
-		if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return START_AGAIN;
-		else if (TRNS_FAILED == status) return NOT_SUCCESS;
-		if (START_AGAIN == opponentQuit(p_serverMsg->type)) {
-			free(p_serverMsg);
-			return START_AGAIN;
-			}
+		if (START_AGAIN == opponentQuit(p_serverMsg->type,p_serverMsg,c_socket)) return START_AGAIN;
 		//<---GAME RESULTS--->
 		if (!strcmp(p_serverMsg->type, "SERVER_GAME_RESULTS")) {
 			gameResults(p_serverMsg, MID_GAME);
@@ -328,13 +328,24 @@ char* chooseNumber() {
 	}
 	return guess;
 }
-int opponentQuit(char* message) {
+int opponentQuit(char* message, Message* serverMsg, SOCKET c_socket) {
+	int status;
 	if (!strcmp(message, "SERVER_OPPONENT_QUIT")) {
 		printf("Opponent quit.\n");
+		status = getMessage(c_socket, &serverMsg, RESPONSE_WAITTIME); //need to check errors
+		if (strcmp(serverMsg->type, "SERVER_MAIN_MENU")) {
+			printf("Message invalid. This is the message recived: %s", serverMsg->type);
+			free(serverMsg);
+			return NOT_SUCCESS;
+		}
+		free(serverMsg);
 		return START_AGAIN;
 	}
 	else
+	{
 		return CONTINUE;
+	}
+		
 }
 void gameResults(Message* message, int status) {
 

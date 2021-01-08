@@ -40,7 +40,14 @@ void confirmShutdown(SOCKET socket) {
 	if (closesocket(socket))
 		printf("closesocket error (serverFullThread), error %ld.\n", WSAGetLastError());
 }
-
+/*int createSocket() {
+	c_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (c_socket == INVALID_SOCKET)
+	{
+		printf("Error at socket( ): %ld\n", WSAGetLastError());
+		return NOT_SUCCESS;
+	}
+}*/
 /*SOCKADDR_IN initAddress(char* ip, int portNumber) {
 	SOCKADDR_IN service;
 	unsigned long Address;

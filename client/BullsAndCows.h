@@ -27,7 +27,7 @@ int playerChoice();
 int checkTRNSCode(int TRNSCode, char* ip, int portNumber, SOCKET c_socket, SOCKADDR_IN clientService);
 int menu(int menu, char* ip, int portNumber);
 char* chooseNumber();
-int opponentQuit(char* message);
+int opponentQuit(char* message, Message* serverMsg, SOCKET c_socket);
 void gameResults(Message* message, int status);
 int makeConnection(SOCKET c_socket, SOCKADDR_IN clientService, char* ip, int portNumber);
 void resourcesManager(SOCKET clientSocket, int WSACleanFlag);
