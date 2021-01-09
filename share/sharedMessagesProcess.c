@@ -91,7 +91,11 @@ Message* messageDecoder(char* messageStr){
 	message = initMessage(messageType);
 	if (NULL == message) /*free stuff*/return NULL;
 	msgTypeInt = getMessageType(messageType);
-	numOfParams = getParamsNum(msgTypeInt);
+	//numOfParams = getParamsNum(msgTypeInt);		//Replaced the function call to if-elseif-else
+	if (msgTypeInt == SERVER_WIN) numOfParams = 2;	//comment here for the case its not working for some reason.
+	else if (msgTypeInt == SERVER_GAME_RESULTS) numOfParams = 4;
+	else
+		numOfParams = 1;
 	setMessageParams(p_restOfMessage, numOfParams, msgTypeInt, message);
 	//free p_restOfMessage?
 	free(p_messageCpy);
@@ -159,7 +163,7 @@ int getMessageType(char* messageType) {
 			return i;
 	}
 	printf("invalid message type\n");
-	return -1;
+	return NOT_SUCCESS;
 }
 
 int getField(int msgType) {

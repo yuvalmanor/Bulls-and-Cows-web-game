@@ -11,24 +11,3 @@ int strToInt(char* stringNum) {
 	return result;
 }
 
-
-int processAndCopy(char** dest, char* source, char* delim) {
-	char* token = NULL, * tmp_restOfSource = NULL, * tmpString = NULL;
-	int i=0;
-
-	token = strtok_s(source, delim, &tmp_restOfSource);
-	if (NULL == token) {
-		printf("strtok_s failed(processAndCopy)\n");
-		//free(tmpString);
-		return NOT_SUCCESS;
-	}
-	
-	if (NULL == (tmpString = malloc(strlen(token) + 1))) {
-		printf("Fatal error: memory allocation for tmpString failed.\n");
-		return NOT_SUCCESS;
-	}
-	strcpy_s(tmpString, strlen(token) + 1, token);
-	*dest = tmpString;
-	return SUCCESS;
-
-}
