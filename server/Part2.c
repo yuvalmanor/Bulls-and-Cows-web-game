@@ -1,12 +1,19 @@
 #include "Part2.h"
 
-int startGame(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncEvent, int playerOne, int* p_players, char* username, char* opponentName) {
+int startGame(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncEvent, int playerOne, int* p_players, char* username, char* opponentName, int* p_playersCount) {
 	int status;
 	char* p_serverMsg = NULL, * p_opponentGuess = NULL, * p_userNum = NULL, *p_opponentNum=NULL, *p_userGuess=NULL;
 	Message* p_clientMsg = NULL;
 
 	status = opponentLeftGame(socket, p_players, lockEvent); 
 	if (GAME_STILL_ON != status) return status;
+	//<---send SERVER_INVITE--->
+	p_serverMsg = prepareMsg("SERVER_INVITE:", opponentName);
+	if (NULL == p_serverMsg) return NOT_SUCCESS;
+	status = SendString(p_serverMsg, socket);
+	free(p_serverMsg);
+	if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return DISCONNECTED; //what happan if send/recv disconnect\timeout?
+	else if (TRNS_FAILED == status) return NOT_SUCCESS;
 	//<---send SERVER_SETUP_REQUSET--->
 	p_serverMsg = prepareMsg("SERVER_SETUP_REQUSET", NULL);
 	if (NULL == p_serverMsg) return NOT_SUCCESS;
@@ -36,7 +43,7 @@ int startGame(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncE
 		return status;
 	}
 	//<---wait that opponent thread write his secret number to shared file--->
-	status = SyncTwoThreads(p_players,lockEvent,syncEvent,USER_WAITTIME);
+	status = SyncTwoThreads(p_playersCount,lockEvent,syncEvent,USER_WAITTIME);
 	if (GAME_STILL_ON != status) {
 		free(p_userNum);
 		return status;
@@ -77,7 +84,7 @@ int startGame(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncE
 			free(p_clientMsg);
 			return NOT_SUCCESS;
 		}
-		if(NULL!=p_userGuess)
+		if(NULL!= p_clientMsg)
 			p_userGuess = p_clientMsg->guess;
 		free(p_clientMsg);
 		//<---write user guess to shared file--->
@@ -87,7 +94,7 @@ int startGame(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncE
 			return NOT_SUCCESS;
 		}
 		//<---wait that opponent thread write his guess to shared file--->
-		status = SyncTwoThreads(p_players, lockEvent, syncEvent, USER_WAITTIME);
+		status = SyncTwoThreads(p_playersCount, lockEvent, syncEvent, USER_WAITTIME);
 		if (GAME_STILL_ON != status) {
 			freeMemory(p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
 			return status;
@@ -102,6 +109,13 @@ int startGame(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncE
 		if (NOT_SUCCESS == status) {
 			freeMemory(p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
 			return NOT_SUCCESS;
+		}
+		status = SendString(p_serverMsg, socket);
+		free(p_serverMsg);
+		if (TRNS_SUCCEEDED != status) {
+			freeMemory(p_userNum, p_opponentNum, NULL, p_opponentGuess);
+			if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return DISCONNECTED;
+			else if (TRNS_FAILED == status) return NOT_SUCCESS;
 		}
 		//<---if there is no winner or tie--->
 		if (GAME_STILL_ON == status)
@@ -150,7 +164,7 @@ int getResults(char** resultMsg, char* username, char* opponentName, char* userN
 	else //In case no winner yet
 	{
 		for (i = 0; i < 4; i++) { //calculate number of bulls and cows
-			char* cur = strchr(userNum, opponentGuess[i]);
+			char* cur = strchr(opponentNum, userGuess[i]);
 			if (NULL == cur) continue;
 			indexDiff = (int)(cur - userNum);
 			if (i == indexDiff) {
@@ -170,12 +184,13 @@ int getResults(char** resultMsg, char* username, char* opponentName, char* userN
 		strcpy_s(p_resultMsg, messageLen, "SERVER_GAME_RESULTS:");
 		strncat_s(p_resultMsg, messageLen, &c_bulls, 1);
 		strcat_s(p_resultMsg, messageLen, ";");
-		strncat_s(p_resultMsg, messageLen, &c_bulls, 1);
+		strncat_s(p_resultMsg, messageLen, &c_cows, 1);
 		strcat_s(p_resultMsg, messageLen, ";");
 		strcat_s(p_resultMsg, messageLen, opponentName);
 		strcat_s(p_resultMsg, messageLen, ";");
 		strcat_s(p_resultMsg, messageLen, opponentGuess);
 		strcat_s(p_resultMsg, messageLen, "\n");
+		p_resultMsg[messageLen - 1] = '\0';
 		*resultMsg = p_resultMsg;
 		return GAME_STILL_ON;
 	}
@@ -194,7 +209,7 @@ int opponentLeftGame(SOCKET socket, int* p_players, HANDLE lockEvent) {
 		}
 		//if(WAIT_TIMEOUT==waitCode)?
 	}
-	if (*p_players != 2) {
+	if ((*p_players) != 2) {
 		p_serverMsg = prepareMsg("SERVER_NO_OPPONENTS", NULL);
 		if (NULL == p_serverMsg) return NOT_SUCCESS;
 		status = SendString(p_serverMsg, socket);

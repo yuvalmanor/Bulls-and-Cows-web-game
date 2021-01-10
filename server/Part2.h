@@ -16,7 +16,7 @@
 typedef enum { MAIN, FAILURE, DENIED } menuStatus;
 typedef enum { MID_GAME, WIN, TIE } gameStatus;
 
-int startGame(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncEvent, int playerOne, int* p_players, char* username, char* opponentName);
+int startGame(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncEvent, int playerOne, int* p_players, char* username, char* opponentName, int* p_playersCount);
 int getResults(char** resultMsg, char* username, char* opponentName, char* userNum, char* opponentNum, char* userGuess, char* opponentGuess);
 int opponentLeftGame(SOCKET socket, int* p_players, HANDLE lockEvent);
 void freeMemory(char* userNum, char* opponentNum, char* userGuess, char* opponentGuess);

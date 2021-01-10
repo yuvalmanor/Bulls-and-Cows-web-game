@@ -14,6 +14,7 @@
 #include "SocketSendRecvTools.h"
 #include "sharedMessagesProcess.h"
 #include "hardcodeddata.h"
+#include "Part2.h"
 
 typedef struct ThreadParam {
 	SOCKET socket;

@@ -21,7 +21,7 @@ DWORD ServiceThread(void* lpParam) {
 	int *p_players = p_param->p_players;
 	int* p_PlayersCount = p_param->p_PlayersCount;
 	char* username = NULL, * otherUsername = NULL, * secretNum = NULL;
-	char* otherSecretNum = NULL, *guess, *otherGuess, p_msg = NULL;
+	char* otherSecretNum = NULL, *guess, *otherGuess=NULL, p_msg = NULL;
 	Message* message = NULL;
 	HANDLE h_sharedFile = NULL, lockEvent = NULL, syncEvent = NULL, failureEvent = NULL;
 	TransferResult_t transResult;
@@ -45,29 +45,48 @@ DWORD ServiceThread(void* lpParam) {
 		retVal = Main_menu(socket, lockEvent, syncEvent, p_players, &playerOne, username, &otherUsername);
 		if (retVal != GAME_STILL_ON) {
 			if (retVal == MAIN_MENU) {
+				if (playerOne) {
+					DeleteFile(sharedFile_name);
 				continue;
+				}
 			}
-			if (playerOne) {
-				DeleteFile(sharedFile_name);
 			if (retVal == QUIT) {
 				printf("Player opted to quit\nLeaving game\n");
 			}
-				
+			if (retVal == NOT_SUCCESS) {
 				printf("Main_menu failed\n");
-			
 			}
+			
 			break;
 		}
 		printf("I am %s\nOther player is %s\n", username, otherUsername);
 		
 		// <--------- PART 2 --------->
-		//PART2();
-
+		h_sharedFile = CreateFileA(sharedFile_name,
+			GENERIC_ALL,
+			(FILE_SHARE_READ|FILE_SHARE_DELETE|FILE_SHARE_WRITE),
+			NULL,
+			OPEN_EXISTING,
+			FILE_ATTRIBUTE_NORMAL,
+			NULL);
+		if (INVALID_HANDLE_VALUE == h_sharedFile) {
+			printf("Can't open %s file Error: %d\n", sharedFile_name, GetLastError());
+			break; //Leave game
+		}
+		retVal = startGame(socket, h_sharedFile, lockEvent, syncEvent, playerOne, p_players, username, otherUsername, p_PlayersCount);
+		if (retVal == NOT_SUCCESS) {
+			printf("The game ended with a failure\n");
+			break;
+		}
 	} // !while(1)
-
+	if (playerOne) {
+		DeleteFile(sharedFile_name);
+	}
 	free(username);
+	free(otherUsername);
+	free(otherGuess);
+	free(otherSecretNum);
 	waitcode = WaitForSingleObject(lockEvent, LOCKEVENT_WAITTIME);
-	ResetEvent(lockEvent);
 	(*p_players)--;
 	SetEvent(lockEvent);
 	printf("leaving game.\n");
@@ -116,6 +135,7 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_players,
 		return NOT_SUCCESS;
 	}
 	if (*p_players != 2) {
+		printf("There are only %d players\n", *p_players);
 		if (!SetEvent(lockEvent)) { //release lockEvent
 			printf("SetEvent failed %d\n", GetLastError());
 			return NOT_SUCCESS;
@@ -132,21 +152,32 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_players,
 		return MAIN_MENU;
 	}
 	//if there are 2 players
-	h_sharedFile = openOrCreateFile(playerOne);
+	h_sharedFile = openOrCreateFile(playerOne); //why is playerOne always 0?
+	printf("%s: playerOne = %d\n", username, *playerOne);
 	if (h_sharedFile == INVALID_HANDLE_VALUE) {
 		if (!SetEvent(lockEvent)) { //release lockEvent
 			printf("SetEvent failed %d\n", GetLastError());
 		}
 		return NOT_SUCCESS;
 	}
-	printf("PlayerOne = %d\n", *playerOne); //DEBUG
-	if (!*playerOne) {
-		if (NOT_SUCCESS == readFromFile(h_sharedFile, 0, otherUsername, *playerOne, 1)) {//get player 1's name
+
+	if (!*playerOne) { //If this is player 2
+		//get player 1's name
+		if (NOT_SUCCESS == readFromFile(h_sharedFile, 0, otherUsername, *playerOne, 1)) {
 			CloseHandle(h_sharedFile);
 			SetEvent(lockEvent);
 			return NOT_SUCCESS;
 		}
-		offset = strlen(*otherUsername) + 2;
+		offset = strlen(*otherUsername) + 1;
+	}
+	//Write username to the file
+	if (NOT_SUCCESS == writeToFile(h_sharedFile, offset, username, *playerOne, 1)) {
+		CloseHandle(h_sharedFile);
+		SetEvent(lockEvent);
+		return NOT_SUCCESS;
+	}
+	//if Player 2: username to the file, release syncEvent for player 1 to read their username from the file.
+	if (!*playerOne) {
 		if (!SetEvent(syncEvent)) { //release syncEvent
 			printf("SetEvent failed %d\n", GetLastError());
 			CloseHandle(h_sharedFile);
@@ -154,11 +185,7 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_players,
 			return NOT_SUCCESS;
 		}
 	}
-	if (NOT_SUCCESS == writeToFile(h_sharedFile, offset, username, *playerOne, 1)) {
-		CloseHandle(h_sharedFile);
-		SetEvent(lockEvent);
-		return NOT_SUCCESS;
-	}
+
 	if (!SetEvent(lockEvent)) { //release lockEvent
 		printf("SetEvent failed %d\n", GetLastError());
 		CloseHandle(h_sharedFile);
@@ -167,6 +194,11 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_players,
 	//---->out of the critical section
 	if (*playerOne) {
 		waitcode = WaitForSingleObject(syncEvent, DOUBLE_RESPONSE_WAITTIME);
+		if (!ResetEvent(syncEvent)) { //lock syncEvent
+			printf("ResetEvent failed %d\n", GetLastError());
+			CloseHandle(h_sharedFile);
+			return NOT_SUCCESS;
+		}
 		if (waitcode != WAIT_OBJECT_0) {
 			CloseHandle(h_sharedFile);
 			if (waitcode == WAIT_TIMEOUT) { //The other player did not respond within 30 seconds
@@ -188,12 +220,13 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_players,
 				return NOT_SUCCESS;
 			}
 		}
-		offset = strlen(username);
+		offset = strlen(username) + 1;
 		if (NOT_SUCCESS == readFromFile(h_sharedFile, offset, otherUsername, *playerOne, 1)) {//get player 2's name
 			CloseHandle(h_sharedFile);
 			return NOT_SUCCESS;
 		}
 	}
+	CloseHandle(h_sharedFile);
 	return GAME_STILL_ON;
 }
 
@@ -428,8 +461,8 @@ int getUserNameAndApproveClient(SOCKET socket, char** username) {
 HANDLE openOrCreateFile(int* playerOne) {
 	DWORD dwDesiredAccess = 0, dwShareMode = 0, dwCreationDisposition = 0;
 	HANDLE hFile;
-	dwDesiredAccess = (GENERIC_READ | GENERIC_WRITE);
-	dwShareMode = FILE_SHARE_DELETE;
+	dwDesiredAccess = GENERIC_ALL;
+	dwShareMode = (FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE);
 	//Try to open existing file:
 	dwCreationDisposition = OPEN_EXISTING;
 	hFile = CreateFileA(sharedFile_name,
@@ -454,7 +487,7 @@ HANDLE openOrCreateFile(int* playerOne) {
 
 	}
 	else if (INVALID_HANDLE_VALUE == hFile) {
-		printf("Can't open %s file\n", sharedFile_name);
+		printf("Can't open %s file Error: %d\n", sharedFile_name, GetLastError());
 		return INVALID_HANDLE_VALUE;
 	}
 	else {
@@ -591,14 +624,14 @@ int SyncTwoThreads(int* p_PlayersCount, HANDLE lockEvent, HANDLE syncEvent, int 
 		WaitForSingleObject(syncEvent, waitTime);
 		if (waitcode != WAIT_OBJECT_0) {
 			if (waitcode == WAIT_TIMEOUT) { return DISCONNECTED; }
+			else { return NOT_SUCCESS; }
 		}
-		else { return NOT_SUCCESS; }
 
 		WaitForSingleObject(lockEvent, waitTime);
 		if (waitcode != WAIT_OBJECT_0) {
 			if (waitcode == WAIT_TIMEOUT) { return DISCONNECTED; }
+			else { return NOT_SUCCESS; }
 		}
-		else { return NOT_SUCCESS; }
 
 		//<------- safe zone ------->
 		(*p_PlayersCount)--;

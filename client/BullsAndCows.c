@@ -350,7 +350,7 @@ int opponentQuit(char* message, Message* serverMsg, SOCKET c_socket) {
 void gameResults(Message* message, int status) {
 
 	if (TIE == status) {
-		printf("It's a tie");
+		printf("It's a tie\n");
 		return;
 	}
 	if (MID_GAME == status) {
