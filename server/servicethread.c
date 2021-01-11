@@ -90,15 +90,18 @@ DWORD ServiceThread(void* lpParam) {
 	free(otherUsername);
 	free(otherGuess);
 	free(otherSecretNum);
-	waitcode = WaitForSingleObject(lockEvent, LOCKEVENT_WAITTIME);
+	waitcode = WaitForSingleObject(lockEvent, LOCKEVENT_WAITTIME); //TODO add validation of waitcode
 	(*p_players)--;
-	SetEvent(lockEvent);
-	printf("serviceThread finished.\n");
+	SetEvent(lockEvent);//TODO add validation of setEvent
 	if (retVal != QUIT)
 		closesocket(socket);
 	else {
 		confirmShutdown(socket);
+		if (!SetEvent(failureEvent)) {
+			printf("Error in SetEvent(failureEvent). Other threads will not be terminated\n");
+		}
 	}
+	printf("serviceThread finished.\n");
 	return 0;
 }
 

@@ -27,19 +27,19 @@ void shutdownConnection(SOCKET socket) {
 	if (TRNS_DISCONNECTED != status) {
 		printf("Shutdown sequence failed. Closing socket.\n");
 		if (closesocket(socket))
-			printf("closesocket error (serverFullThread), error %ld.\n", WSAGetLastError());
+			printf("closesocket error (shutDownConnection), error %ld.\n", WSAGetLastError());
 	}
 	if (closesocket(socket)) 
-		printf("closesocket error (serverFullThread), error %ld.\n", WSAGetLastError());
+		printf("closesocket error (shutDownConnection), error %ld.\n", WSAGetLastError());
 }
 void confirmShutdown(SOCKET socket) {
 	if (shutdown(socket, SD_SEND)) {
 		printf("Failed to shutdown, error %ld.\n", WSAGetLastError());
 		if (closesocket(socket))
-			printf("closesocket error (serverFullThread), error %ld.\n", WSAGetLastError());
+			printf("closesocket error (confirmShutdown), error %ld.\n", WSAGetLastError());
 	}
 	if (closesocket(socket))
-		printf("closesocket error (serverFullThread), error %ld.\n", WSAGetLastError());
+		printf("closesocket error (confirmShutdown), error %ld.\n", WSAGetLastError());
 }
 /*int createSocket() {
 	c_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);

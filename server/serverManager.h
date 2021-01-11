@@ -18,7 +18,7 @@
 
 int serverManager(int portNumber);
 
-ThreadParam* initThreadParam(SOCKET socket, int index, int* players, int* PlayersCount);
+ThreadParam* initThreadParam(SOCKET socket, int index, int* players, int* PlayersCount, HANDLE* threadHandles);
 
 int ServerMainFreeResources(SOCKET MainSocket,
 	ThreadParam** threadParams,
@@ -27,6 +27,7 @@ int ServerMainFreeResources(SOCKET MainSocket,
 void TerminateServiceThreads(HANDLE* threadHandles, SOCKET* threadParams);
 
 int FindFirstUnusedThreadSlot(HANDLE* threadHandles);
-
-
+void FailureThread(ThreadParam* lpParam);
+void TerminateAllThread(HANDLE* threadHandles);
+void exitThread();
 #endif // !SERVERMAIN_H

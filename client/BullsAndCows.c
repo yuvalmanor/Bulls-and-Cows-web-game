@@ -83,12 +83,14 @@ int setup(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* ip, 
 			free(p_serverMsg);
 			return SUCCESS;
 		}
-		else if (!strcmp(p_serverMsg->type, "SERVER_DENIED")) {
+		else if (!strcmp(p_serverMsg->type, "SERVER_DENIED")) { // TODO solve error 10038 thing
 			free(p_serverMsg->deniedReason);
 			free(p_serverMsg);
-			shutdownConnection(c_socket);
+			setsockopt(socket, SOL_SOCKET, SO_DONTLINGER, 0, 0);
+			confirmShutdown(c_socket);
 			choice = menu(DENIED, ip, portNumber);
 			if (1 == choice) {
+				c_socket = INVALID_SOCKET;
 				c_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 				if (c_socket == INVALID_SOCKET)
 				{
@@ -130,15 +132,7 @@ int start(SOCKET c_socket) {
 	else {
 		free(p_serverMsg);
 		printf("No opponents were found.\n");
-		//status = getMessage(c_socket, &p_serverMsg, 15000);
-		//if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return START_AGAIN;
-		//else if (TRNS_FAILED == status) return NOT_SUCCESS;
-		//if (strcmp(p_serverMsg->type, "SERVER_MAIN_MENU")) {
-		//	printf("Message invalid. This is the message recived: %s", p_serverMsg->type);
-		//	free(p_serverMsg);
-		//	return NOT_SUCCESS;
 		return START_AGAIN;
-		//}
 	}
 	
 
