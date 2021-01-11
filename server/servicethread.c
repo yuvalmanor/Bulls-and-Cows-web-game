@@ -52,7 +52,9 @@ DWORD ServiceThread(void* lpParam) {
 			}
 			if (retVal == QUIT) {
 				printf("Player opted to quit\n");
-				break;
+			}
+			if (retVal == DISCONNECTED) {
+				printf("Client disconnected abruptly\n\n");
 			}
 			if (retVal == NOT_SUCCESS) {
 				printf("Main_menu failed\n");
@@ -93,12 +95,14 @@ DWORD ServiceThread(void* lpParam) {
 	waitcode = WaitForSingleObject(lockEvent, LOCKEVENT_WAITTIME); //TODO add validation of waitcode
 	(*p_players)--;
 	SetEvent(lockEvent);//TODO add validation of setEvent
-	if (retVal != QUIT)
-		closesocket(socket);
-	else {
+	if (retVal == QUIT)
 		confirmShutdown(socket);
-		if (!SetEvent(failureEvent)) {
-			printf("Error in SetEvent(failureEvent). Other threads will not be terminated\n");
+	else {
+		closesocket(socket);
+		if (retVal == NOT_SUCCESS) {
+			if (!SetEvent(failureEvent)) {
+				printf("Error in SetEvent(failureEvent). Other threads will not be terminated\n");
+			}
 		}
 	}
 	printf("serviceThread finished.\n");
@@ -146,6 +150,12 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_players,
 		return NOT_SUCCESS;
 	}
 	if (*p_players != 2) {
+		if (*p_players > 2) {
+			printf("Error: incorrect number of players\n");
+			if (!SetEvent(lockEvent))  //release lockEvent
+				printf("SetEvent failed %d\n", GetLastError());
+			return NOT_SUCCESS;
+		}
 		printf("There are only %d players\n", *p_players);
 		if (!SetEvent(lockEvent)) { //release lockEvent
 			printf("SetEvent failed %d\n", GetLastError());

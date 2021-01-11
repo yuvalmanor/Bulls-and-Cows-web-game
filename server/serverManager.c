@@ -3,14 +3,14 @@
 
 int serverManager(int portNumber) {
 	SOCKET MainSocket = INVALID_SOCKET;
-	ThreadParam* threadParams[MAX_NUM_OF_PLAYERS+ NUM_OF_OVERHEAD_THREADS] = { NULL, NULL, NULL, NULL, NULL};
+	ThreadParam* threadParams[MAX_NUM_OF_PLAYERS+ NUM_OF_OVERHEAD_THREADS - 1] = { NULL, NULL, NULL, NULL};
 	unsigned long Address;
 	SOCKADDR_IN service;
 	int bindRes;
 	int ListenRes;
 	int index;
 	int players = 0, PlayersCount = 0;
-	HANDLE threadHandles[MAX_NUM_OF_PLAYERS+ NUM_OF_OVERHEAD_THREADS - 1] = { NULL, NULL, NULL, NULL};
+	HANDLE threadHandles[MAX_NUM_OF_PLAYERS+ NUM_OF_OVERHEAD_THREADS] = { NULL, NULL, NULL, NULL, NULL};
 	HANDLE lockEvent = NULL, syncEvent = NULL, FailureEvent = NULL;
 	//<--------Initialize Winsock------->
 	if (-1 == InitializeWinsock()) { 
