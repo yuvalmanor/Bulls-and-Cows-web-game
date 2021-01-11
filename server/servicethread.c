@@ -46,17 +46,17 @@ DWORD ServiceThread(void* lpParam) {
 		if (retVal != GAME_STILL_ON) {
 			if (retVal == MAIN_MENU) {
 				if (playerOne) {
-					DeleteFile(sharedFile_name);
-				continue;
+					DeleteFileA(sharedFile_name);
 				}
+				continue;
 			}
 			if (retVal == QUIT) {
-				printf("Player opted to quit\nLeaving game\n");
+				printf("Player opted to quit\n");
+				break;
 			}
 			if (retVal == NOT_SUCCESS) {
 				printf("Main_menu failed\n");
 			}
-			
 			break;
 		}
 		printf("I am %s\nOther player is %s\n", username, otherUsername);
@@ -74,13 +74,17 @@ DWORD ServiceThread(void* lpParam) {
 			break; //Leave game
 		}
 		retVal = startGame(socket, h_sharedFile, lockEvent, syncEvent, playerOne, p_players, username, otherUsername, p_PlayersCount);
+		CloseHandle(h_sharedFile);
+		if (playerOne) {
+			DeleteFileA(sharedFile_name);
+		}
 		if (retVal == NOT_SUCCESS) {
 			printf("The game ended with a failure\n");
 			break;
 		}
 	} // !while(1)
 	if (playerOne) {
-		DeleteFile(sharedFile_name);
+		DeleteFileA(sharedFile_name);
 	}
 	free(username);
 	free(otherUsername);
@@ -89,8 +93,12 @@ DWORD ServiceThread(void* lpParam) {
 	waitcode = WaitForSingleObject(lockEvent, LOCKEVENT_WAITTIME);
 	(*p_players)--;
 	SetEvent(lockEvent);
-	printf("leaving game.\n");
-	closesocket(socket);
+	printf("serviceThread finished.\n");
+	if (retVal != QUIT)
+		closesocket(socket);
+	else {
+		confirmShutdown(socket);
+	}
 	return 0;
 }
 

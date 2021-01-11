@@ -43,7 +43,7 @@ int clientManager(char* ip, int portNumber, char* username) {
 	
 	playGame(username, c_socket, clientService, ip, portNumber);
 
-	resourcesManager(c_socket,CLEAN);
+	resourcesManager(NULL,CLEAN);
 	return 1;
 }
 

@@ -15,6 +15,7 @@
 #include "sharedMessagesProcess.h"
 #include "hardcodeddata.h"
 #include "Part2.h"
+#include "WinsockFunc.h"
 
 typedef struct ThreadParam {
 	SOCKET socket;

@@ -1,7 +1,7 @@
 #include "Part2.h"
 
 int startGame(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncEvent, int playerOne, int* p_players, char* username, char* opponentName, int* p_playersCount) {
-	int status;
+	int status, results;
 	char* p_serverMsg = NULL, * p_opponentGuess = NULL, * p_userNum = NULL, *p_opponentNum=NULL, *p_userGuess=NULL;
 	Message* p_clientMsg = NULL;
 
@@ -22,7 +22,7 @@ int startGame(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncE
 	if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return DISCONNECTED; //what happan if send/recv disconnect\timeout?
 	else if (TRNS_FAILED == status) return NOT_SUCCESS;
 	//<---recive message from client--->
-	status = getMessage(socket, &p_clientMsg, 30000); //need to check if waitTime is correct, shouldnt be 10MIN?
+	status = getMessage(socket, &p_clientMsg, RESPONSE_WAITTIME); //need to check if waitTime is correct, shouldnt be 10MIN?
 	if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return DISCONNECTED; 
 	else if (TRNS_FAILED == status) return NOT_SUCCESS;
 	if (strcmp(p_clientMsg->type, "CLIENT_SETUP")) { 
@@ -105,11 +105,12 @@ int startGame(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncE
 			return NOT_SUCCESS;
 		}
 		//<---calculate game results--->
-		status = getResults(&p_serverMsg, username, opponentName, p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
-		if (NOT_SUCCESS == status) {
+		results = getResults(&p_serverMsg, username, opponentName, p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
+		if (NOT_SUCCESS == results) {
 			freeMemory(p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
 			return NOT_SUCCESS;
 		}
+		//<------ Send the results to the client------>
 		status = SendString(p_serverMsg, socket);
 		free(p_serverMsg);
 		if (TRNS_SUCCEEDED != status) {
@@ -117,11 +118,10 @@ int startGame(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncE
 			if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return DISCONNECTED;
 			else if (TRNS_FAILED == status) return NOT_SUCCESS;
 		}
-		//<---if there is no winner or tie--->
-		if (GAME_STILL_ON == status)
+		//<---Continue according to the game results--->
+		if (GAME_STILL_ON == results) //If no one wins
 			continue;
-		//<---if someone won or its a tie--->
-		if (MAIN_MENU == status) {
+		if (MAIN_MENU == results) {//If one or both players win
 			freeMemory(p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
 			return MAIN_MENU;
 		}
@@ -156,7 +156,7 @@ int getResults(char** resultMsg, char* username, char* opponentName, char* userN
 	}
 	//<---in case of opponent WIN--->
 	else if (WIN != userStatus && WIN == opponentStatus) {
-		p_resultMsg = winMsg(userNum, opponentName);
+		p_resultMsg = winMsg(opponentNum, opponentName);
 		if (NULL == p_resultMsg) return NOT_SUCCESS;
 		*resultMsg = p_resultMsg;
 		return MAIN_MENU;
@@ -166,7 +166,7 @@ int getResults(char** resultMsg, char* username, char* opponentName, char* userN
 		for (i = 0; i < 4; i++) { //calculate number of bulls and cows
 			char* cur = strchr(opponentNum, userGuess[i]);
 			if (NULL == cur) continue;
-			indexDiff = (int)(cur - userNum);
+			indexDiff = (int)(cur - opponentNum);
 			if (i == indexDiff) {
 				bulls += 1;
 				continue;

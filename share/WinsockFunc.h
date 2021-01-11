@@ -14,7 +14,7 @@
 #include "SocketSendRecvTools.h"
 
 int InitializeWinsock();
-void shutdownConnection(SOCKET socket, char* buffer);
+void shutdownConnection(SOCKET socket);
 void confirmShutdown(SOCKET socket);
 //SOCKADDR_IN initAddress(char* ip, int portNumber);
 #endif // !WINSOCKFUNC_H

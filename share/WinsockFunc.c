@@ -12,16 +12,17 @@ int InitializeWinsock() {
 	}	
 	return SUCCESS;
 }
-void shutdownConnection(SOCKET socket, char* buffer) {
+void shutdownConnection(SOCKET socket) {
 	int status;
-	
+	char* buffer = NULL;
+
 	if (shutdown(socket, SD_SEND)) {
 		printf("Failed to shutdown, error %ld.\n", WSAGetLastError());
 		if (closesocket(socket))
 			printf("closesocket error (serverFullThread), error %ld.\n", WSAGetLastError());
 		free(buffer);
 	}
-	status = ReceiveString(&buffer, socket, RESPONSE_WAITTIME);
+	status = ReceiveString(&buffer, socket, 3000);
 	free(buffer);
 	if (TRNS_DISCONNECTED != status) {
 		printf("Shutdown sequence failed. Closing socket.\n");
