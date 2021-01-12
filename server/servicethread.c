@@ -76,6 +76,7 @@ DWORD ServiceThread(void* lpParam) {
 			break; //Leave game
 		}
 		retVal = startGame(socket, h_sharedFile, lockEvent, syncEvent, playerOne, p_players, username, otherUsername, p_PlayersCount);
+		// TODO - create proper retVal handeling
 		CloseHandle(h_sharedFile);
 		if (playerOne) {
 			DeleteFileA(sharedFile_name);
@@ -478,7 +479,6 @@ int getUserNameAndApproveClient(SOCKET socket, char** username) {
 	printf("SERVER_APPROVED sent\n");
 	return SUCCESS;
 }
-
 HANDLE openOrCreateFile(int* playerOne) {
 	DWORD dwDesiredAccess = 0, dwShareMode = 0, dwCreationDisposition = 0;
 	HANDLE hFile;
@@ -518,7 +518,6 @@ HANDLE openOrCreateFile(int* playerOne) {
 	}
 	return hFile;
 }
-
 int writeToFile(HANDLE h_file, int offset, char* data, int playerOne, int writeUsername) {
 	DWORD dwBytesWritten, filePointer;
 	int numOfBytesToWrite = (int)strlen(data);
@@ -545,7 +544,6 @@ int writeToFile(HANDLE h_file, int offset, char* data, int playerOne, int writeU
 	}
 	return SUCCESS;
 }
-
 int readFromFile(HANDLE h_sharedFile, int offset, char** data, int playerOne, int readUsername) {
 	DWORD dwBytesWritten, filePointer, dwBytesRead;
 	int numOfBytesToRead = SECRETNUMBER_LEN + 2;
@@ -582,13 +580,10 @@ int readFromFile(HANDLE h_sharedFile, int offset, char** data, int playerOne, in
 	*data = buffer;
 	return SUCCESS;
 }
-
 void leaveGame(SOCKET socket, HANDLE lockEvent, int* p_players, HANDLE h_sharedFile, Message* message) {
 	//TODO
 	int x = 1;
 }
-
-
 int getEvents(HANDLE* lockEvent, HANDLE* syncEvent, HANDLE* FailureEvent) // CHECK THIS
 {
 	/* Get handle to event by name. If the event doesn't exist, create it */
@@ -626,7 +621,6 @@ int getEvents(HANDLE* lockEvent, HANDLE* syncEvent, HANDLE* FailureEvent) // CHE
 
 	return SUCCESS;
 }
-
 int SyncTwoThreads(int* p_PlayersCount, HANDLE lockEvent, HANDLE syncEvent, int waitTime) {
 	DWORD waitcode;
 	waitcode = WaitForSingleObject(lockEvent, waitTime);
@@ -637,9 +631,15 @@ int SyncTwoThreads(int* p_PlayersCount, HANDLE lockEvent, HANDLE syncEvent, int 
 	// < ------ - safe zone-------> ////CHECK SetEvent ERROR CODE!
 		(*p_PlayersCount)++;
 		if (*p_PlayersCount == 2) {
-			SetEvent(syncEvent);
+			if (!SetEvent(syncEvent)) {
+				printf("SetEvent failed(SyncTwoThreads) %d\n", GetLastError());
+				return NOT_SUCCESS;
+			}
 		}
-		SetEvent(lockEvent);
+		if (!SetEvent(lockEvent)) {
+			printf("SetEvent failed(SyncTwoThreads) %d\n", GetLastError());
+			return NOT_SUCCESS;
+		}
 		//<--------end of safe zone------>
 
 		WaitForSingleObject(syncEvent, waitTime);
@@ -657,9 +657,16 @@ int SyncTwoThreads(int* p_PlayersCount, HANDLE lockEvent, HANDLE syncEvent, int 
 		//<------- safe zone ------->
 		(*p_PlayersCount)--;
 		if (*p_PlayersCount == 0) {
-		ResetEvent(syncEvent);
-	}
-	SetEvent(lockEvent);
+			if (!ResetEvent(syncEvent)) {
+				printf("ResetEvent failed(SyncTwoThreads) %d\n", GetLastError());
+				return NOT_SUCCESS;
+			}
+		}
+	
+		if (!SetEvent(lockEvent)) {
+			printf("SetEvent failed(SyncTwoThreads) %d\n", GetLastError());
+			return NOT_SUCCESS;
+		}
 	//<-------- end of safe zone------>
 
 	return GAME_STILL_ON;
@@ -787,8 +794,6 @@ int startGame(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncE
 		}
 	}
 }
-
-
 int getResults(char** resultMsg, char* username, char* opponentName, char* userNum, char* opponentNum, char* userGuess, char* opponentGuess) {
 	char* p_resultMsg = NULL, c_bulls, c_cows;
 	int messageLen = 0, bulls = 0, cows = 0, i = 0, indexDiff, userStatus = -1, opponentStatus = -1;
@@ -875,13 +880,13 @@ int opponentLeftGame(SOCKET socket, int* p_players, HANDLE lockEvent) {
 		status = SendString(p_serverMsg, socket);
 		free(p_serverMsg);
 		if (TRNS_FAILED == status) return NOT_SUCCESS;
-		if (0 == SetEvent(lockEvent)) {
+		if (!SetEvent(lockEvent)) {
 			printf("Error when setEvent (opponentLeftGame). Error code: %d.\n", GetLastError());
 			return NOT_SUCCESS;
 		}
 		return MAIN_MENU;
 	}
-	if (0 == SetEvent(lockEvent)) {
+	if (!SetEvent(lockEvent)) {
 		printf("Error when setEvent (opponentLeftGame). Error code: %d.\n", GetLastError());
 		return NOT_SUCCESS;
 	}
