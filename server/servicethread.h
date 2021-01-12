@@ -14,8 +14,10 @@
 #include "SocketSendRecvTools.h"
 #include "sharedMessagesProcess.h"
 #include "hardcodeddata.h"
-#include "Part2.h"
 #include "WinsockFunc.h"
+
+typedef enum { MAIN, FAILURE, DENIED } menuStatus;
+typedef enum { MID_GAME, WIN, TIE } gameStatus;
 
 typedef struct ThreadParam {
 	SOCKET socket;
@@ -36,5 +38,9 @@ int readFromFile(HANDLE h_sharedFile, int offset, char** data, int playerOne, in
 int getEvents(HANDLE* lockEvent, HANDLE* syncEvent, HANDLE* FailureEvent);
 void leaveGame(SOCKET socket, HANDLE lockEvent, int* p_players, HANDLE h_sharedFile, Message* message);
 int SyncTwoThreads(int* p_PlayersCount, HANDLE lockEvent, HANDLE syncEvent, int waitTime);
-
+int startGame(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncEvent, int playerOne, int* p_players, char* username, char* opponentName, int* p_playersCount);
+int getResults(char** resultMsg, char* username, char* opponentName, char* userNum, char* opponentNum, char* userGuess, char* opponentGuess);
+int opponentLeftGame(SOCKET socket, int* p_players, HANDLE lockEvent);
+void freeMemory(char* userNum, char* opponentNum, char* userGuess, char* opponentGuess);
+char* winMsg(char* opponentNum, char* winnerName);
 #endif // !SERVICETHREAD_H

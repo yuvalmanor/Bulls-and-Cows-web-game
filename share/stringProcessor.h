@@ -5,6 +5,6 @@
 #include "hardcodeddata.h"
 
 
-int strToInt(char* stringNum);
+
 #endif // !STRINGPROCESSOR_H
 

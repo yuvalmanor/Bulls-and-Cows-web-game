@@ -142,9 +142,8 @@
   <ItemGroup>
     <ClCompile Include="..\share\sharedMessagesProcess.c" />
     <ClCompile Include="..\share\SocketSendRecvTools.c" />
-    <ClCompile Include="..\share\stringProcessor.c" />
     <ClCompile Include="..\share\WinsockFunc.c" />
-    <ClCompile Include="BullsAndCows.c" />
+    <ClCompile Include="GameManager.c" />
     <ClCompile Include="clientManager.c" />
     <ClCompile Include="main_client.c" />
   </ItemGroup>
@@ -152,9 +151,8 @@
     <ClInclude Include="..\share\hardcodeddata.h" />
     <ClInclude Include="..\share\sharedMessagesProcess.h" />
     <ClInclude Include="..\share\SocketSendRecvTools.h" />
-    <ClInclude Include="..\share\stringProcessor.h" />
     <ClInclude Include="..\share\WinsockFunc.h" />
-    <ClInclude Include="BullsAndCows.h" />
+    <ClInclude Include="GameManager.h" />
     <ClInclude Include="clientManager.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

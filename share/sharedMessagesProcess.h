@@ -106,4 +106,10 @@ int initFourParams(char* restOfMessage, Message* message);
 * returns: Pointer to string which contain the message to be send.
 */
 char* prepareMsg(const char* msgType, char* str);
+/*Description: strToInt covert string number to integer type number.
+* Arguments:
+* 1. char* stringNum - Pointer to number represented by string
+* returns: Integer type number
+*/
+int strToInt(char* stringNum);
 #endif // SHAREDMESSAGESPROCESS_H

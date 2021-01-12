@@ -12,8 +12,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "WinsockFunc.h"
-#include "stringProcessor.h"
-#include "BullsAndCows.h"
+#include "GameManager.h"
 #include "sharedMessagesProcess.h"
 
 

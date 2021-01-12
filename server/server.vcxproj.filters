@@ -27,9 +27,6 @@
     <ClCompile Include="..\share\sharedMessagesProcess.c">
       <Filter>Shared Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\share\stringProcessor.c">
-      <Filter>Shared Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="serverFullThread.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -45,9 +42,6 @@
     <ClCompile Include="main_server.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Part2.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="servicethread.h">
@@ -57,9 +51,6 @@
       <Filter>Shared Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\share\sharedMessagesProcess.h">
-      <Filter>Shared Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\share\stringProcessor.h">
       <Filter>Shared Header Files</Filter>
     </ClInclude>
     <ClInclude Include="serverFullThread.h">
@@ -75,9 +66,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="main_server.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Part2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
