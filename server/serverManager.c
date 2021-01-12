@@ -246,20 +246,19 @@ void FailureThread(ThreadParam* lpParam) {
 		return NOT_SUCCESS; 
 	}
 	p_param = (ThreadParam*)lpParam;
-	HANDLE* threadHandles = p_param->threadHandles;
 	//SOCKET* p_socket = p_param->p_socket; TODO
 	HANDLE lockEvent = NULL, syncEvent = NULL, FailureEvent = NULL;
 	DWORD waitcode;
 	if (1 != getEvents(&lockEvent, &syncEvent, &FailureEvent)) {
 		printf("error. can't getEvents (FailureThread)\n");
-		TerminateAllThread(threadHandles); //TODO change this to close MainSocket
+		//TerminateAllThread(threadHandles); //TODO change this to close MainSocket
 	}
 	waitcode = WaitForSingleObject(FailureEvent, INFINITE);
 	if (waitcode != WAIT_OBJECT_0) {
 		printf("An error occured when waiting for FailureThread\n");
 	}
 		printf("FailureThread: terminating all threads and shutting program down\n");
-		TerminateAllThread(threadHandles); //TODO change this to close MainSocket
+		//TerminateAllThread(threadHandles); //TODO change this to close MainSocket
 }
 
 void TerminateAllThread(HANDLE* threadHandles) {

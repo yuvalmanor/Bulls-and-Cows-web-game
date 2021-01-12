@@ -23,7 +23,7 @@ typedef struct ThreadParam {
 	SOCKET socket;
 	int* p_players;
 	int* p_PlayersCount;
-	HANDLE* threadHandles;
+	SOCKET* p_socket;
 
 }ThreadParam;
 
