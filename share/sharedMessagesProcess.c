@@ -89,7 +89,7 @@ Message* messageDecoder(char* messageStr){
 	}
 	//in case the message is with parameters
 	message = initMessage(messageType);
-	if (NULL == message) /*free stuff*/return NULL;
+	if (NULL == message) return NULL;
 	msgTypeInt = getMessageType(messageType);
 	//numOfParams = getParamsNum(msgTypeInt);		//Replaced the function call to if-elseif-else
 	if (msgTypeInt == SERVER_WIN) numOfParams = 2;	//comment here for the case its not working for some reason.

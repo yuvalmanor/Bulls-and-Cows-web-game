@@ -36,7 +36,7 @@ HANDLE openOrCreateFile(int* playerOne);
 int writeToFile(HANDLE h_file, int offset, char* data, int playerOne, int writeUsername);
 int readFromFile(HANDLE h_sharedFile, int offset, char** data, int playerOne, int readUsername);
 int getEvents(HANDLE* lockEvent, HANDLE* syncEvent, HANDLE* FailureEvent);
-void leaveGame(SOCKET socket, HANDLE lockEvent, int* p_players, HANDLE h_sharedFile, Message* message);
+void freeServiceThreadResources(SOCKET socket, HANDLE lockEvent, int* p_players, HANDLE h_sharedFile, Message* message);
 int SyncTwoThreads(SOCKET socket, int* p_numOfPlayersSyncing, HANDLE lockEvent, HANDLE syncEvent, int waitTime);
 /*Description: startGame is incharge of managing the game right after the two players send CLIENT_VERSUS with
 * thier names. It manages the communication with the client, calcuates the game results and read/write the 

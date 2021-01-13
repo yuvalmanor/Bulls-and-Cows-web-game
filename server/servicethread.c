@@ -20,7 +20,7 @@ DWORD ServiceThread(void* lpParam) {
 	int playerOne, retVal, threadRetVal = 0, gameStatus = MAIN_MENU;
 	int *p_numOfPlayersInGame = p_param->p_numOfPlayersInGame;
 	int* p_numOfPlayersSyncing = p_param->p_numOfPlayersSyncing;
-	char* username = NULL, * otherUsername = NULL, * secretNum = NULL;
+	char* p_username = NULL, * p_opponentUsername = NULL, * secretNum = NULL;
 	char* otherSecretNum = NULL, *guess, *otherGuess=NULL, p_msg = NULL;
 	Message* message = NULL;
 	HANDLE h_sharedFile = NULL, lockEvent = NULL, syncEvent = NULL, failureEvent = NULL;
@@ -30,31 +30,38 @@ DWORD ServiceThread(void* lpParam) {
 		return NOT_SUCCESS;
 	}
 
-	retVal = getUserNameAndApproveClient(socket, &username);
+	retVal = getUserNameAndApproveClient(socket, &p_username);
 	if (retVal == NOT_SUCCESS) {
-		leaveGame(socket, lockEvent, NULL, NULL, NULL);
+		freeServiceThreadResources(socket, lockEvent, syncEvent, failureEvent, NULL);
 		return NOT_SUCCESS;
 	}
-	 // TODO: Add checkings of return values to the next 4 lines
 	waitcode = WaitForSingleObject(lockEvent, LOCKEVENT_WAITTIME);
+	if (WAIT_OBJECT_0 != waitcode) {
+		freeServiceThreadResources(socket, lockEvent, syncEvent, failureEvent, p_username);
+		return NOT_SUCCESS;
+	}
 	(*p_numOfPlayersInGame)++;
-	SetEvent(lockEvent);
-
-	// <-------- entering game loop ------->
+	if (!SetEvent(lockEvent)) {
+		printf("Error in SetEvent(servicethread). Other threads will not be terminated\n");
+		freeServiceThreadResources(socket, lockEvent, syncEvent, failureEvent, p_username);
+		return NOT_SUCCESS;
+	}
+	// <-------- Entering game loop ------->
 	while (1) {
-		retVal = Main_menu(socket, lockEvent, syncEvent, p_numOfPlayersInGame, &playerOne, username, &otherUsername);
+		retVal = Main_menu(socket, lockEvent, syncEvent, p_numOfPlayersInGame, &playerOne, p_username, &p_opponentUsername);
 		if (retVal != GAME_STILL_ON) {
-			if (retVal == MAIN_MENU) {
-				if (playerOne) {
-					DeleteFileA(sharedFile_name);
+			if (playerOne) {
+				if (!DeleteFileA(sharedFile_name)) {
+					printf("DeleteFileA failed. Error code: %d\n", GetLastError());
+					retVal = NOT_SUCCESS;
+					break;
 				}
+			}
+			if (retVal == MAIN_MENU) {
 				continue;
 			}
 			break;
 		}
-		printf("I am %s\nOther player is %s\n", username, otherUsername);
-		
-		// <--------- PART 2 --------->
 		h_sharedFile = CreateFileA(sharedFile_name,
 			GENERIC_ALL,
 			(FILE_SHARE_READ|FILE_SHARE_DELETE|FILE_SHARE_WRITE),
@@ -66,11 +73,16 @@ DWORD ServiceThread(void* lpParam) {
 			printf("Can't open %s file Error: %d\n", sharedFile_name, GetLastError());
 			break; //Leave game
 		}
-		retVal = startGame(socket, h_sharedFile, lockEvent, syncEvent, playerOne, p_numOfPlayersInGame, username, otherUsername, p_numOfPlayersSyncing);
+		//<---Both players are registered to the game, know each other names and start to play--->
+		retVal = startGame(socket, h_sharedFile, lockEvent, syncEvent, playerOne, p_numOfPlayersInGame, p_username, p_opponentUsername, p_numOfPlayersSyncing);
 		// TODO - create proper retVal handeling
+		free(p_opponentUsername);
 		CloseHandle(h_sharedFile);
 		if (playerOne) {
-			DeleteFileA(sharedFile_name);
+			if (!DeleteFileA(sharedFile_name)) {
+				printf("DeleteFileA failed. Error code: %d\n", GetLastError());
+				return NOT_SUCCESS;
+			}
 		}
 		if (retVal == NOT_SUCCESS || retVal == DISCONNECTED) {
 			break;
@@ -79,13 +91,13 @@ DWORD ServiceThread(void* lpParam) {
 	if (playerOne) {
 		DeleteFileA(sharedFile_name);
 	}
-	free(username);
-	free(otherUsername);
-	free(otherGuess);
-	free(otherSecretNum);
 	waitcode = WaitForSingleObject(lockEvent, LOCKEVENT_WAITTIME); //TODO add validation of waitcode
 	(*p_numOfPlayersInGame)--;
 	SetEvent(lockEvent);//TODO add validation of setEvent
+	free(p_username); 
+	free(p_opponentUsername);
+	free(otherGuess);
+	free(otherSecretNum);
 	if (retVal == QUIT)
 		confirmShutdown(socket);
 	else {
@@ -107,23 +119,21 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_numOfPla
 	Message* message = NULL;
 	HANDLE h_sharedFile = NULL;
 
-	printf("sending SERVER_MAIN_MENU\n");
+	//<---Send SERVER_MAIN_MENU to client--->
 	char* p_rawMessage = "SERVER_MAIN_MENU\n";
-	transResult = SendString(p_rawMessage, socket); //Send client MAIN_MENU
-	if (transResult != TRNS_SUCCEEDED) {
-		if (transResult == TRNS_DISCONNECTED)
-			return DISCONNECTED;
-		else
-			return NOT_SUCCESS;
-	}
-	retVal = getMessage(socket, &message, INFINITE); //Get response from client
+	transResult = SendString(p_rawMessage, socket);
+	if (transResult != TRNS_SUCCEEDED) 
+		return NOT_SUCCESS;
+	//<---Get response from client--->
+	retVal = getMessage(socket, &message, INFINITE); 
 	if (retVal != TRNS_SUCCEEDED) {
 		if (retVal == TRNS_DISCONNECTED)
 			return DISCONNECTED;
 		else
 			return NOT_SUCCESS;
 	}
-	if (!strcmp(message->type, "CLIENT_DISCONNECT")) { //If client chose to quit
+	//<---In case of client disconnect--->
+	if (!strcmp(message->type, "CLIENT_DISCONNECT")) {
 		free(message);
 		return QUIT;
 	}
@@ -132,47 +142,41 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_numOfPla
 		return NOT_SUCCESS;
 	}
 	//else- client chose CLIENT_VERSUS
-	free(message); message = NULL;
+	free(message);
 	//----> Go to critical section
-	//mainMenuCriticalSection(lockEvent, p_numOfPlayersInGame)
 	waitcode = WaitForSingleObject(lockEvent, LOCKEVENT_WAITTIME);
 	if (waitcode != WAIT_OBJECT_0) {
 		printf("Waitcode is %d\nError code %d while waiting for lockEvent\n", waitcode, GetLastError());
 		return NOT_SUCCESS;
 	}
+		//<---In case there are less than 2 players--->
 	if (*p_numOfPlayersInGame != 2) {
-		if (*p_numOfPlayersInGame > 2) {
+		if (*p_numOfPlayersInGame > 2) { // TODO - check if this case is possible
 			printf("Error: incorrect number of players\n");
 			if (!SetEvent(lockEvent))  //release lockEvent
 				printf("SetEvent failed %d\n", GetLastError());
 			return NOT_SUCCESS;
 		}
-		printf("There are only %d players\n", *p_numOfPlayersInGame);
 		if (!SetEvent(lockEvent)) { //release lockEvent
 			printf("SetEvent failed %d\n", GetLastError());
 			return NOT_SUCCESS;
-		}//Send client SERVER_NO_OPPONENTS
-		printf("sending SERVER_NO_OPPONENTS\n");
+		}
+		//<---Send client SERVER_NO_OPPONENTS--->
 		char* p_rawMessage = "SERVER_NO_OPPONENTS\n";
 		transResult = SendString(p_rawMessage, socket);
-		if (transResult != TRNS_SUCCEEDED) {
-			if (transResult == TRNS_DISCONNECTED)
-				return DISCONNECTED;
-			else
-				return NOT_SUCCESS;
-		}
+		if (transResult != TRNS_SUCCEEDED)
+			return NOT_SUCCESS;
 		return MAIN_MENU;
 	}
-	//if there are 2 players
-	h_sharedFile = openOrCreateFile(playerOne); //why is playerOne always 0?
-	printf("%s: playerOne = %d\n", username, *playerOne);
+	//<---In case there are 2 players--->
+	h_sharedFile = openOrCreateFile(playerOne);
 	if (h_sharedFile == INVALID_HANDLE_VALUE) {
 		if (!SetEvent(lockEvent)) { //release lockEvent
 			printf("SetEvent failed %d\n", GetLastError());
 		}
 		return NOT_SUCCESS;
 	}
-
+	// TODO - make this shorter
 	if (!*playerOne) { //If this is player 2
 		//get player 1's name
 		if (NOT_SUCCESS == readFromFile(h_sharedFile, 0, otherUsername, *playerOne, 1)) {
@@ -193,7 +197,8 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_numOfPla
 		if (!SetEvent(syncEvent)) { //release syncEvent
 			printf("SetEvent failed %d\n", GetLastError());
 			CloseHandle(h_sharedFile);
-			SetEvent(lockEvent);
+			if(!SetEvent(lockEvent))
+				printf("SetEvent failed %d\n", GetLastError());
 			return NOT_SUCCESS;
 		}
 	}
@@ -205,7 +210,7 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_numOfPla
 	}
 	//---->out of the critical section
 	if (*playerOne) {
-		waitcode = WaitForSingleObject(syncEvent, DOUBLE_RESPONSE_WAITTIME);
+		waitcode = WaitForSingleObject(syncEvent, USER_WAITTIME);
 		if (!ResetEvent(syncEvent)) { //lock syncEvent
 			printf("ResetEvent failed %d\n", GetLastError());
 			CloseHandle(h_sharedFile);
@@ -213,19 +218,14 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_numOfPla
 		}
 		if (waitcode != WAIT_OBJECT_0) {
 			CloseHandle(h_sharedFile);
-			if (waitcode == WAIT_TIMEOUT) { //The other player did not respond within 30 seconds
-				printf("sending SERVER_NO_OPPONENTS\n");
+			if (waitcode == WAIT_TIMEOUT) { //The other player did not respond within 10 minutes
 				char* p_rawMessage = "SERVER_NO_OPPONENTS\n";
 				transResult = SendString(p_rawMessage, socket);
-				if (transResult != TRNS_SUCCEEDED) { //message was not sent
-					if (transResult == TRNS_DISCONNECTED)
-						return DISCONNECTED;
-					else
-						return NOT_SUCCESS;
-				}
-				else {
+				if (transResult != TRNS_SUCCEEDED)
+					return NOT_SUCCESS;
+				else 
 					return MAIN_MENU; //message was sent. go back to main menu
-				}
+				
 			}
 			else {
 				printf("There was a problem with waiting for syncEvent\n");
@@ -241,7 +241,6 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_numOfPla
 	CloseHandle(h_sharedFile);
 	return GAME_STILL_ON;
 }
-
 int getUserNameAndApproveClient(SOCKET socket, char** username) {
 	int retVal;
 	Message* message = NULL;
@@ -373,9 +372,19 @@ int readFromFile(HANDLE h_sharedFile, int offset, char** data, int playerOne, in
 	*data = buffer;
 	return SUCCESS;
 }
-void leaveGame(SOCKET socket, HANDLE lockEvent, int* p_numOfPlayersInGame, HANDLE h_sharedFile, Message* message) {
-	//TODO
-	int x = 1;
+void freeServiceThreadResources(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, HANDLE failureEvent, char* username) {
+	if (INVALID_SOCKET != socket) {
+		if (closesocket(socket))
+			printf("closesocket error (freeServiceThreadResources), error %ld.\n", WSAGetLastError());
+	}
+	if (lockEvent != NULL) 
+		CloseHandle(lockEvent);
+	if (syncEvent != NULL) 
+		CloseHandle(syncEvent);
+	if (failureEvent != NULL)
+		CloseHandle(failureEvent);
+	if (username != NULL)
+		free(username);
 }
 int getEvents(HANDLE* lockEvent, HANDLE* syncEvent, HANDLE* FailureEvent) // CHECK THIS
 {
