@@ -663,7 +663,7 @@ int getResults(char** resultMsg, char* username, char* opponentName, char* userN
 		return GAME_STILL_ON;
 	}
 }
-//need to handle TIMEOUT situation inside opponentLeftGame.
+//TODO - need to handle TIMEOUT situation inside opponentLeftGame.
 int opponentLeftGame(SOCKET socket, int* p_numOfPlayersInGame, HANDLE lockEvent) {
 	DWORD waitCode;
 	char* p_serverMsg = NULL;
