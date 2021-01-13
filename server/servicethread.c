@@ -16,7 +16,7 @@ DWORD ServiceThread(void* lpParam) {
 	p_param = (ThreadParam*)lpParam;
 	DWORD waitcode;
 	SOCKET socket = p_param->socket;
-	int playerOne, retVal, threadRetVal = 0, gameStatus = MAIN_MENU;
+	int playerOne=0, retVal, threadRetVal = 0, gameStatus = MAIN_MENU;
 	int *p_numOfPlayersInGame = p_param->p_numOfPlayersInGame, * p_numOfPlayersSyncing = p_param->p_numOfPlayersSyncing;
 	char* p_username = NULL, * p_opponentUsername = NULL;
 	Message* message = NULL;
@@ -114,7 +114,7 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_numOfPla
 	char* p_rawMessage = "SERVER_MAIN_MENU\n";
 	transResult = SendString(p_rawMessage, socket);
 	if (transResult != TRNS_SUCCEEDED) 
-		return NOT_SUCCESS;
+		return DISCONNECTED;
 	//<---Get response from client--->
 	retVal = getMessage(socket, &message, INFINITE); 
 	if (retVal != TRNS_SUCCEEDED) {
@@ -156,7 +156,7 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_numOfPla
 		char* p_rawMessage = "SERVER_NO_OPPONENTS\n";
 		transResult = SendString(p_rawMessage, socket);
 		if (transResult != TRNS_SUCCEEDED)
-			return NOT_SUCCESS;
+			return DISCONNECTED;
 		return MAIN_MENU;
 	}
 	//<---In case there are 2 players--->
@@ -213,7 +213,7 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_numOfPla
 				char* p_rawMessage = "SERVER_NO_OPPONENTS\n";
 				transResult = SendString(p_rawMessage, socket);
 				if (transResult != TRNS_SUCCEEDED)
-					return NOT_SUCCESS;
+					return DISCONNECTED;
 				else 
 					return MAIN_MENU; //message was sent. go back to main menu
 				
@@ -256,7 +256,7 @@ int getUserNameAndApproveClient(SOCKET socket, char** username) {
 	if (retVal != TRNS_SUCCEEDED) {
 		printf("Transfer failed when sending %s\n", p_rawMessage);
 		free(*username);
-		return NOT_SUCCESS;
+		return DISCONNECTED;
 	}
 
 	printf("SERVER_APPROVED sent\n");
@@ -484,13 +484,13 @@ int startGame(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncE
 	if (NULL == p_serverMsg) return NOT_SUCCESS;
 	status = SendString(p_serverMsg, socket);
 	free(p_serverMsg);
-	if (TRNS_FAILED == status) return NOT_SUCCESS;
+	if (TRNS_FAILED == status) return DISCONNECTED;
 	//<---send SERVER_SETUP_REQUSET--->
 	p_serverMsg = prepareMsg("SERVER_SETUP_REQUSET", NULL);
 	if (NULL == p_serverMsg) return NOT_SUCCESS;
 	status = SendString(p_serverMsg, socket);
 	free(p_serverMsg);
-	if (TRNS_FAILED == status) return NOT_SUCCESS;
+	if (TRNS_FAILED == status) return DISCONNECTED;
 	//<---recive message from client--->
 	status = getMessage(socket, &p_clientMsg, USER_WAITTIME);
 	if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return DISCONNECTED;
@@ -526,30 +526,30 @@ int startGame(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncE
 	while (1) {
 		status = opponentLeftGame(socket, p_numOfPlayersInGame, lockEvent);
 		if (GAME_STILL_ON != status) {
-			freeMemory(p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
+			freeSingleGameMemory(p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
 			return status;
 		}
 		//<---send SERVER_PLAYER_MOVE_REQUEST--->
 		p_serverMsg = prepareMsg("SERVER_PLAYER_MOVE_REQUEST", NULL);
 		if (NULL == p_serverMsg) {
-			freeMemory(p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
+			freeSingleGameMemory(p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
 			return NOT_SUCCESS;
 		}
 		status = SendString(p_serverMsg, socket);
 		free(p_serverMsg);
 		if (TRNS_FAILED == status) {
-			freeMemory(p_userNum, p_opponentNum, NULL, NULL);
-			return NOT_SUCCESS;
+			freeSingleGameMemory(p_userNum, p_opponentNum, NULL, NULL);
+			return DISCONNECTED;
 		}
 		//<---recive message from client (CLIENT_PLAYER_MOVE)--->
 		status = getMessage(socket, &p_clientMsg, USER_WAITTIME);
 		if (TRNS_SUCCEEDED != status) {
-			freeMemory(p_userNum, p_opponentNum, NULL, NULL);
+			freeSingleGameMemory(p_userNum, p_opponentNum, NULL, NULL);
 			if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return DISCONNECTED;
 			else if (TRNS_FAILED == status) return NOT_SUCCESS;
 		}
 		if (strcmp(p_clientMsg->type, "CLIENT_PLAYER_MOVE")) {
-			freeMemory(p_userNum, p_opponentNum, NULL, NULL);
+			freeSingleGameMemory(p_userNum, p_opponentNum, NULL, NULL);
 			free(p_clientMsg);
 			return NOT_SUCCESS;
 		}
@@ -559,40 +559,40 @@ int startGame(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncE
 		//<---write user guess to shared file--->
 		status = writeToFile(h_sharedFile, GUESS_OFFSET, p_userGuess, playerOne, 0);
 		if (NOT_SUCCESS == status) {
-			freeMemory(p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
+			freeSingleGameMemory(p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
 			return NOT_SUCCESS;
 		}
 		//<---wait that opponent thread write his guess to shared file--->
 		status = SyncTwoThreads(socket, p_numOfPlayersSyncing, p_numOfPlayersInGame, lockEvent, syncEvent, USER_WAITTIME);
 		if (GAME_STILL_ON != status) {
-			freeMemory(p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
+			freeSingleGameMemory(p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
 			return status;
 		}
 		//<---read opponent guess from shared file--->
 		if (NOT_SUCCESS == readFromFile(h_sharedFile, GUESS_OFFSET, &p_opponentGuess, playerOne, 0)) {
-			freeMemory(p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
+			freeSingleGameMemory(p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
 			return NOT_SUCCESS;
 		}
 		//<---calculate game results--->
 		results = getResults(&p_serverMsg, username, opponentName, p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
 		if (NOT_SUCCESS == results) {
-			freeMemory(p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
+			freeSingleGameMemory(p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
 			return NOT_SUCCESS;
 		}
 		//<------ Send the results to the client------>
 		status = SendString(p_serverMsg, socket);
 		free(p_serverMsg);
 		if (TRNS_FAILED == status) {
-			freeMemory(p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
-			return NOT_SUCCESS;
+			freeSingleGameMemory(p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
+			return DISCONNECTED;
 		}
 		//<---Continue according to the game results--->
 		if (GAME_STILL_ON == results) { //If no one wins
-			freeMemory(NULL, NULL, p_userGuess, p_opponentGuess);
+			freeSingleGameMemory(NULL, NULL, p_userGuess, p_opponentGuess);
 			continue;
 		}
 		if (MAIN_MENU == results) {//If one or both players win
-			freeMemory(p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
+			freeSingleGameMemory(p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
 			return MAIN_MENU;
 		}
 	}
@@ -684,9 +684,11 @@ int opponentLeftGame(SOCKET socket, int* p_numOfPlayersInGame, HANDLE lockEvent)
 		status = SendString(p_serverMsg, socket);
 		free(p_serverMsg);
 		if (TRNS_FAILED == status) {
-			if (!SetEvent(lockEvent))
+			if (!SetEvent(lockEvent)) {
 				printf("Error when setEvent (opponentLeftGame). Error code: %d.\n", GetLastError());
-			return NOT_SUCCESS;
+				return NOT_SUCCESS;
+			}
+			return DISCONNECTED;
 		}
 		if (!SetEvent(lockEvent)) {
 			printf("Error when setEvent (opponentLeftGame). Error code: %d.\n", GetLastError());
@@ -700,7 +702,7 @@ int opponentLeftGame(SOCKET socket, int* p_numOfPlayersInGame, HANDLE lockEvent)
 	}
 	return GAME_STILL_ON;
 }
-void freeMemory(char* userNum, char* opponentNum, char* userGuess, char* opponentGuess) {
+void freeSingleGameMemory(char* userNum, char* opponentNum, char* userGuess, char* opponentGuess) {
 
 	if (NULL != userNum)
 		free(userNum);

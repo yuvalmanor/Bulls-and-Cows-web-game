@@ -84,7 +84,7 @@ int opponentLeftGame(SOCKET socket, int* p_players, HANDLE lockEvent);
 * 4. char* opponentGuess - Opponent guess.
 * returns: None
 */
-void freeMemory(char* userNum, char* opponentNum, char* userGuess, char* opponentGuess);
+void freeSingleGameMemory(char* userNum, char* opponentNum, char* userGuess, char* opponentGuess);
 /*Description: winMsg creates the SERVER_WIN message.
 * Arguments:
 * 2. char* opponentNum - Opponent secret number.
