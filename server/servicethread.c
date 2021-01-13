@@ -8,7 +8,6 @@ static LPCSTR failureEvent_name = "Failure";
 static LPCSTR sharedFile_name = "GameSession.txt";
 
 DWORD ServiceThread(void* lpParam) {
-	//get thread parameters
 	ThreadParam* p_param;
 	if (NULL == lpParam) {
 		printf("Service thread can't work with NULL as parameters\n");
@@ -18,18 +17,13 @@ DWORD ServiceThread(void* lpParam) {
 	DWORD waitcode;
 	SOCKET socket = p_param->socket;
 	int playerOne, retVal, threadRetVal = 0, gameStatus = MAIN_MENU;
-	int *p_numOfPlayersInGame = p_param->p_numOfPlayersInGame;
-	int* p_numOfPlayersSyncing = p_param->p_numOfPlayersSyncing;
-	char* p_username = NULL, * p_opponentUsername = NULL, * secretNum = NULL;
-	char* otherSecretNum = NULL, *guess, *otherGuess=NULL, p_msg = NULL;
+	int *p_numOfPlayersInGame = p_param->p_numOfPlayersInGame, * p_numOfPlayersSyncing = p_param->p_numOfPlayersSyncing;
+	char* p_username = NULL, * p_opponentUsername = NULL;
 	Message* message = NULL;
 	HANDLE h_sharedFile = NULL, lockEvent = NULL, syncEvent = NULL, failureEvent = NULL;
-	TransferResult_t transResult;
 
-	if (NOT_SUCCESS == getEvents(&lockEvent, &syncEvent, &failureEvent)) {
+	if (NOT_SUCCESS == getEvents(&lockEvent, &syncEvent, &failureEvent)) 
 		return NOT_SUCCESS;
-	}
-
 	retVal = getUserNameAndApproveClient(socket, &p_username);
 	if (retVal == NOT_SUCCESS) {
 		freeServiceThreadResources(socket, lockEvent, syncEvent, failureEvent, NULL);
@@ -57,61 +51,58 @@ DWORD ServiceThread(void* lpParam) {
 					break;
 				}
 			}
-			if (retVal == MAIN_MENU) {
-				continue;
-			}
+			if (retVal == MAIN_MENU) continue;
 			break;
 		}
-		h_sharedFile = CreateFileA(sharedFile_name,
-			GENERIC_ALL,
-			(FILE_SHARE_READ|FILE_SHARE_DELETE|FILE_SHARE_WRITE),
-			NULL,
-			OPEN_EXISTING,
-			FILE_ATTRIBUTE_NORMAL,
-			NULL);
+		h_sharedFile = CreateFileA(sharedFile_name, GENERIC_ALL, (FILE_SHARE_READ|FILE_SHARE_DELETE|FILE_SHARE_WRITE),
+			NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 		if (INVALID_HANDLE_VALUE == h_sharedFile) {
 			printf("Can't open %s file Error: %d\n", sharedFile_name, GetLastError());
+			if (playerOne) {
+				if (!DeleteFileA(sharedFile_name)) {
+					printf("DeleteFileA failed. Error code: %d\n", GetLastError());
+					retVal = NOT_SUCCESS;
+				}
+			}
 			break; //Leave game
 		}
 		//<---Both players are registered to the game, know each other names and start to play--->
 		retVal = startGame(socket, h_sharedFile, lockEvent, syncEvent, playerOne, p_numOfPlayersInGame, p_username, p_opponentUsername, p_numOfPlayersSyncing);
-		// TODO - create proper retVal handeling
 		free(p_opponentUsername);
 		CloseHandle(h_sharedFile);
 		if (playerOne) {
 			if (!DeleteFileA(sharedFile_name)) {
 				printf("DeleteFileA failed. Error code: %d\n", GetLastError());
-				return NOT_SUCCESS;
+				retVal = NOT_SUCCESS;
 			}
 		}
-		if (retVal == NOT_SUCCESS || retVal == DISCONNECTED) {
-			break;
-		}
+		if (retVal == NOT_SUCCESS || retVal == DISCONNECTED) break;
 	} // !while(1)
-	if (playerOne) {
-		DeleteFileA(sharedFile_name);
+	waitcode = WaitForSingleObject(lockEvent, LOCKEVENT_WAITTIME);
+	if (WAIT_OBJECT_0 != waitcode) {
+		printf("WaitForSingleObject failed. Error code: %d\n", GetLastError());
+		retVal = NOT_SUCCESS;
 	}
-	waitcode = WaitForSingleObject(lockEvent, LOCKEVENT_WAITTIME); //TODO add validation of waitcode
 	(*p_numOfPlayersInGame)--;
-	SetEvent(lockEvent);//TODO add validation of setEvent
-	free(p_username); 
-	free(p_opponentUsername);
-	free(otherGuess);
-	free(otherSecretNum);
+	if (!SetEvent(lockEvent)) {
+		printf("SetEvent failed. Error code: %d\n", GetLastError());
+		retVal = NOT_SUCCESS;
+	}
+	freeServiceThreadResources(INVALID_SOCKET, lockEvent, syncEvent, NULL, p_username);
 	if (retVal == QUIT)
 		confirmShutdown(socket);
 	else {
-		closesocket(socket);
+		if (!closesocket(socket))
+			printf("closesocket failed. Error code: %d\n", GetLastError());
 		if (retVal == NOT_SUCCESS) {
 			if (!SetEvent(failureEvent)) {
 				printf("Error in SetEvent(failureEvent). Other threads will not be terminated\n");
 			}
 		}
+		CloseHandle(failureEvent);
 	}
-	printf("serviceThread finished.\n");
 	return 0;
 }
-
 int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_numOfPlayersInGame, int* playerOne, char* username, char** otherUsername) {
 	TransferResult_t transResult;
 	int retVal, offset = 0;
@@ -485,7 +476,7 @@ int startGame(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncE
 	int status, results;
 	char* p_serverMsg = NULL, * p_opponentGuess = NULL, * p_userNum = NULL, * p_opponentNum = NULL, * p_userGuess = NULL;
 	Message* p_clientMsg = NULL;
-
+// TODO  - Yuval need to compress everthing befor the while(1) to function.
 	status = opponentLeftGame(socket, p_numOfPlayersInGame, lockEvent);
 	if (GAME_STILL_ON != status) return status;
 	//<---send SERVER_INVITE--->
@@ -558,7 +549,7 @@ int startGame(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncE
 			else if (TRNS_FAILED == status) return NOT_SUCCESS;
 		}
 		if (strcmp(p_clientMsg->type, "CLIENT_PLAYER_MOVE")) {
-			free(p_clientMsg->guess);
+			freeMemory(p_userNum, p_opponentNum, NULL, NULL);
 			free(p_clientMsg);
 			return NOT_SUCCESS;
 		}
@@ -592,12 +583,14 @@ int startGame(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncE
 		status = SendString(p_serverMsg, socket);
 		free(p_serverMsg);
 		if (TRNS_FAILED == status) {
-			freeMemory(p_userNum, p_opponentNum, NULL, p_opponentGuess);
+			freeMemory(p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
 			return NOT_SUCCESS;
 		}
 		//<---Continue according to the game results--->
-		if (GAME_STILL_ON == results) //If no one wins
+		if (GAME_STILL_ON == results) { //If no one wins
+			freeMemory(NULL, NULL, p_userGuess, p_opponentGuess);
 			continue;
+		}
 		if (MAIN_MENU == results) {//If one or both players win
 			freeMemory(p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
 			return MAIN_MENU;
