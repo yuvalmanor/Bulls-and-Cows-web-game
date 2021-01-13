@@ -21,7 +21,7 @@ int serverManager(int portNumber) {
 	{
 		//Free resources, WSACleanup and end program with -1
 		printf("Error at socket( ): %ld\n", WSAGetLastError());
-		ServerMainFreeResources(NULL, NULL, NULL, NULL); 
+		ServerManagerFreeResources(NULL, NULL, NULL, NULL); 
 		return NOT_SUCCESS;
 	}
 
@@ -31,7 +31,7 @@ int serverManager(int portNumber) {
 	{
 		printf("The string \"%s\" cannot be converted into an ip address. ending program.\n",
 			LOCALHOST);
-		ServerMainFreeResources(MainSocket, NULL, NULL, NULL);
+		ServerManagerFreeResources(MainSocket, NULL, NULL, NULL);
 		return NOT_SUCCESS;
 	}
 	service.sin_family = AF_INET;
@@ -45,7 +45,7 @@ int serverManager(int portNumber) {
 	if (bindRes == SOCKET_ERROR)
 	{
 		printf("bind( ) failed with error %ld. Ending program\n", WSAGetLastError());
-		ServerMainFreeResources(MainSocket, NULL, NULL, NULL);
+		ServerManagerFreeResources(MainSocket, NULL, NULL, NULL);
 		return NOT_SUCCESS;
 	}
 	printf("socket bounded.\n");
@@ -56,19 +56,19 @@ int serverManager(int portNumber) {
 	{		
 		//Free resources: close socket, free address struct(?), WASCleanup, return -1
 		printf("Failed listening on socket, error %ld.\n", WSAGetLastError());
-		ServerMainFreeResources(MainSocket, NULL, NULL, NULL); 
+		ServerManagerFreeResources(MainSocket, NULL, NULL, NULL); 
 		return NOT_SUCCESS;
 	}
 	printf("listening to IP: %s port %d\n", LOCALHOST, portNumber);
 
 	//Create syncronization mechanisms
 	if (NOT_SUCCESS == getEvents(&lockEvent, &syncEvent, &FailureEvent)) {
-		ServerMainFreeResources(MainSocket, NULL, NULL, NULL);
+		ServerManagerFreeResources(MainSocket, NULL, NULL, NULL);
 		return NOT_SUCCESS;
 	}
 	//Create Failure thread and Exit Thread
 	if (NOT_SUCCESS == createFailureAndExitThreads(threadParams, threadHandles, &MainSocket)) {
-		ServerMainFreeResources(MainSocket, lockEvent, syncEvent, FailureEvent);
+		ServerManagerFreeResources(MainSocket, lockEvent, syncEvent, FailureEvent);
 		return NOT_SUCCESS;
 	}
 	printf("Waiting for a client to connect\n");
@@ -91,7 +91,7 @@ int serverManager(int portNumber) {
 		//Get the index of the first unused slot
 		index = FindFirstUnusedThreadSlot(threadHandles, threadParams); 
 
-		threadParams[index] = initThreadParam(AcceptSocket, index, &numOfPlayersInGame, &numOfPlayersSyncing, NULL); //initialize parameters for this thread
+		threadParams[index] = initThreadParam(AcceptSocket, &numOfPlayersInGame, &numOfPlayersSyncing, NULL); //initialize parameters for this thread
 		if (threadParams[index] == NULL) { //If this fails, close the socket and wait for another client
 			closesocket(AcceptSocket);
 			break;
@@ -109,27 +109,27 @@ int serverManager(int portNumber) {
 	} //!while(1)
 
 	clearThreadsAndParameters(threadHandles, threadParams);
-	ServerMainFreeResources(NULL, lockEvent, syncEvent, FailureEvent);
+	ServerManagerFreeResources(NULL, lockEvent, syncEvent, FailureEvent);
 	printf("ServerManager is quitting\n");
 	return 0;
 
 }
 
-ThreadParam* initThreadParam(SOCKET socket, int index, int* players, int* PlayersCount, SOCKET* p_socket) {
+ThreadParam* initThreadParam(SOCKET socket, int* numOfPlayersInGame, int* numOfPlayersSyncing, SOCKET* p_socket) {
 	ThreadParam* p_threadparams = NULL;
 	if (NULL == (p_threadparams = (ThreadParam*)malloc(sizeof(ThreadParam)))) {
 		printf("Fatal error: memory allocation failed (ThreadParam).\n");
 		return NULL;
 	}
 	p_threadparams->socket = socket;
-	p_threadparams->p_numOfPlayersInGame = players;
-	p_threadparams->p_numOfPlayersSyncing = PlayersCount;
+	p_threadparams->p_numOfPlayersInGame = numOfPlayersInGame;
+	p_threadparams->p_numOfPlayersSyncing = numOfPlayersSyncing;
 	p_threadparams->p_socket = p_socket;
 	return p_threadparams;
 }
 
 //TODO make sure this is doing the right things
-int ServerMainFreeResources(SOCKET MainSocket, HANDLE lockEvent, HANDLE syncEvent, HANDLE FailureEvent) { //Add all events and close handles
+int ServerManagerFreeResources(SOCKET MainSocket, HANDLE lockEvent, HANDLE syncEvent, HANDLE FailureEvent) { //Add all events and close handles
 	if (NULL != MainSocket) {
 		if (closesocket(MainSocket) == SOCKET_ERROR)
 			printf("Failed to close MainSocket in ServerMainFreeResources(). error %ld\n", WSAGetLastError());
@@ -178,11 +178,11 @@ int FindFirstUnusedThreadSlot(HANDLE* threadHandles, ThreadParam** threadParams)
 }
 
 int createFailureAndExitThreads(ThreadParam** threadParams, HANDLE* threadHandles, SOCKET* p_socket) {
-	threadParams[FAILURE_THREAD_INDEX] = initThreadParam(NULL, NULL, NULL, NULL, p_socket);
+	threadParams[FAILURE_THREAD_INDEX] = initThreadParam(NULL, NULL, NULL, p_socket);
 	if (threadParams[FAILURE_THREAD_INDEX] == NULL) {
 		return NOT_SUCCESS;
 	}
-	threadParams[EXIT_THREAD_INDEX] = initThreadParam(NULL, NULL, NULL, NULL, p_socket);
+	threadParams[EXIT_THREAD_INDEX] = initThreadParam(NULL, NULL, NULL, p_socket);
 	if (threadParams[EXIT_THREAD_INDEX] == NULL) {
 		free(threadParams[FAILURE_THREAD_INDEX]);
 		threadParams[FAILURE_THREAD_INDEX] = NULL;

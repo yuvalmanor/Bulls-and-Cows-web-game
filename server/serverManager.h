@@ -14,18 +14,61 @@
 #include "serverFullThread.h"
 #include "WinsockFunc.h"
 
-//#define EVENT_NAME "Event_1"
 
+/*
+Description - The function that manages the server and its threads
+Parameters - 
+	*int portNumber - the port number to which the socket will be bounded
+Returns - SUCCESS or NOT_SUCCESS
+	*/
 int serverManager(int portNumber);
 
-ThreadParam* initThreadParam(SOCKET socket, int index, int* players, int* PlayersCount, SOCKET* p_socket);
-
-int ServerMainFreeResources(SOCKET MainSocket, HANDLE lockEvent, HANDLE syncEvent, HANDLE FailureEvent);
-
+/*
+Description - Initialize a signle thread's parameters
+Parameters -
+	*SOCKET socket - a socket for the thread to use
+	* int* numOfPlayersInGame - the address of an int initialized to 0
+	* int* numOfPlayersSyncing - the address of an int initialized to 0
+	* SOCKET* p_socket - the adress of the MainSocket
+Returns - a ThreadParam instance if successful, NULL if not successful.
+	*/
+ThreadParam* initThreadParam(SOCKET socket, int* numOfPlayersInGame, int* numOfPlayersSyncing, SOCKET* p_socket);
+/*
+Description - Free manager resources
+Parameters -
+	* SOCKET MainSocket - The main Socket
+	* HANDLE lockEvent - an event to close or NULL if event was not yet opened
+	* HANDLE syncEvent - an event to close or NULL if event was not yet opened
+	* HANDLE FailureEvent - an event to close or NULL if event was not yet opened
+Returns - SUCCESS or NOT_SUCCESS
+	*/
+int ServerManagerFreeResources(SOCKET MainSocket, HANDLE lockEvent, HANDLE syncEvent, HANDLE FailureEvent);
+/*
+Description - Finds the first unused thread slot (out of the first 3 slots)
+Parameters -
+	* HANDLE* threadHandles - An array of thread handles
+	* ThreadParam** threadParams - an array of thread parameters
+Returns - The index of the first unused slot
+	*/
 int FindFirstUnusedThreadSlot(HANDLE* threadHandles, ThreadParam** threadParams);
 
+/*
+Description - the function the "Failure thread" will execute. If a failure Event was set - Make the
+			main thread stop waiting for accept(), terminate all of the threads and shut the program down
+Parameters -
+	* ThreadParam* lpParam - the parameters for the thread
+Returns - no return value
+	*/
 void FailureThread(ThreadParam* lpParam);
 
+/*
+Description - the function the "exit thread" will execute. If the user wrote "exit" to the console - Make the
+			main thread stop waiting for accept(), terminate all of the threads and shut the program down.
+			We can assume no client will be connected during this time.
+Parameters -
+	* ThreadParam* lpParam - the parameters for the thread
+Returns - no return value
+	*/
 void exitThread(ThreadParam* lpParam);
 
 int clearThreadsAndParameters(HANDLE* threadHandles, ThreadParam** threadParams);
