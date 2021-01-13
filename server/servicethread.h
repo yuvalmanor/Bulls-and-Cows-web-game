@@ -21,8 +21,8 @@ typedef enum { MID_GAME, WIN, TIE } gameStatus;
 
 typedef struct ThreadParam {
 	SOCKET socket;
-	int* p_players;
-	int* p_PlayersCount;
+	int* p_numOfPlayersInGame;
+	int* p_numOfPlayersSyncing;
 	SOCKET* p_socket;
 
 }ThreadParam;

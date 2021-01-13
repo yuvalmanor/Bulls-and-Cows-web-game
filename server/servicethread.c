@@ -18,8 +18,8 @@ DWORD ServiceThread(void* lpParam) {
 	DWORD waitcode;
 	SOCKET socket = p_param->socket;
 	int playerOne, retVal, threadRetVal = 0, gameStatus = MAIN_MENU;
-	int *p_players = p_param->p_players;
-	int* p_PlayersCount = p_param->p_PlayersCount;
+	int *p_players = p_param->p_numOfPlayersInGame;
+	int* p_PlayersCount = p_param->p_numOfPlayersSyncing;
 	char* username = NULL, * otherUsername = NULL, * secretNum = NULL;
 	char* otherSecretNum = NULL, *guess, *otherGuess=NULL, p_msg = NULL;
 	Message* message = NULL;

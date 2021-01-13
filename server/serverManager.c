@@ -122,8 +122,8 @@ ThreadParam* initThreadParam(SOCKET socket, int index, int* players, int* Player
 		return NULL;
 	}
 	p_threadparams->socket = socket;
-	p_threadparams->p_players = players;
-	p_threadparams->p_PlayersCount = PlayersCount;
+	p_threadparams->p_numOfPlayersInGame = players;
+	p_threadparams->p_numOfPlayersSyncing = PlayersCount;
 	p_threadparams->p_socket = p_socket;
 	return p_threadparams;
 }
