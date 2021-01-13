@@ -64,12 +64,20 @@ void FailureThread(ThreadParam* lpParam);
 /*
 Description - the function the "exit thread" will execute. If the user wrote "exit" to the console - Make the
 			main thread stop waiting for accept(), terminate all of the threads and shut the program down.
-			We can assume no client will be connected during this time.
+			We can assume no client will be connected when exit is being called
 Parameters -
 	* ThreadParam* lpParam - the parameters for the thread
 Returns - no return value
 	*/
 void exitThread(ThreadParam* lpParam);
 
+/*
+Description - close all opened thread Handles and free any allocated thread parameter. 
+If Threads are running, Terminate them.
+Parameters -
+	* HANDLE* threadHandles - arr of thread Handles
+	* ThreadParam** threadParams - arr of pointers to Thread parameters
+Returns - SUCCESS or NOT_SUCCESS
+	*/
 int clearThreadsAndParameters(HANDLE* threadHandles, ThreadParam** threadParams);
 #endif // !SERVERMAIN_H

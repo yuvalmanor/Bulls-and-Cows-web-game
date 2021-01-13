@@ -37,7 +37,7 @@ int writeToFile(HANDLE h_file, int offset, char* data, int playerOne, int writeU
 int readFromFile(HANDLE h_sharedFile, int offset, char** data, int playerOne, int readUsername);
 int getEvents(HANDLE* lockEvent, HANDLE* syncEvent, HANDLE* FailureEvent);
 void leaveGame(SOCKET socket, HANDLE lockEvent, int* p_players, HANDLE h_sharedFile, Message* message);
-int SyncTwoThreads(int* p_PlayersCount, HANDLE lockEvent, HANDLE syncEvent, int waitTime);
+int SyncTwoThreads(SOCKET socket, int* p_numOfPlayersSyncing, HANDLE lockEvent, HANDLE syncEvent, int waitTime);
 /*Description: startGame is incharge of managing the game right after the two players send CLIENT_VERSUS with
 * thier names. It manages the communication with the client, calcuates the game results and read/write the 
 * guesses and secret numbers.
@@ -47,10 +47,10 @@ int SyncTwoThreads(int* p_PlayersCount, HANDLE lockEvent, HANDLE syncEvent, int 
 * 3. HANDLE lockEvent - TODO
 * 4. HANDLE syncEvent - TODO
 * 5. int playerOne - Integer that flags to the thread if it is incharge of first player or second.
-* 6. int* p_players - Pointer to an integer that counts the number of clients are connected to the server.
+* 6. int* p_numOfPlayersInGame - Pointer to an integer that counts the number of clients are connected to the server.
 * 7. char* username - The player username that recived from the player.
 * 8. char* opponentName - The opponent name that recived from the shared file.
-* 9. int* p_playersCount - Flag that used for syncing the two threads.
+* 9. int* p_numOfPlayersSyncing - Flag that used for syncing the two threads.
 * returns: NOT_SUCCESS or MAIN_MENU or DISCONNECTED
 */
 int startGame(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncEvent, int playerOne, int* p_players, char* username, char* opponentName, int* p_playersCount);
