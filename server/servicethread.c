@@ -609,7 +609,7 @@ int getEvents(HANDLE* lockEvent, HANDLE* syncEvent, HANDLE* FailureEvent) // CHE
 	}
 	(*FailureEvent) = CreateEvent(
 		NULL, /* default security attributes */
-		FALSE,       /* auto-reset event */
+		TRUE,       /* manual-reset event */
 		FALSE,      /* initial state is non-signaled */
 		failureEvent_name);         /* name */
 	if (*FailureEvent == NULL) {

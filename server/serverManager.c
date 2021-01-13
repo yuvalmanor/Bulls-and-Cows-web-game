@@ -7,10 +7,7 @@ int serverManager(int portNumber) {
 	ThreadParam* threadParams[MAX_NUM_OF_PLAYERS+ NUM_OF_OVERHEAD_THREADS] = { NULL, NULL, NULL, NULL, NULL};
 	unsigned long Address;
 	SOCKADDR_IN service;
-	int bindRes;
-	int ListenRes;
-	int index;
-	int players = 0, PlayersCount = 0;
+	int bindRes, ListenRes, index, numOfPlayersInGame = 0, numOfPlayersSyncing = 0;;
 	HANDLE threadHandles[MAX_NUM_OF_PLAYERS+ NUM_OF_OVERHEAD_THREADS] = { NULL, NULL, NULL, NULL, NULL};
 	HANDLE lockEvent = NULL, syncEvent = NULL, FailureEvent = NULL;
 	//<--------Initialize Winsock------->
@@ -24,7 +21,7 @@ int serverManager(int portNumber) {
 	{
 		//Free resources, WSACleanup and end program with -1
 		printf("Error at socket( ): %ld\n", WSAGetLastError());
-		ServerMainFreeResources(NULL, threadParams, NULL, NULL, NULL);
+		ServerMainFreeResources(NULL, NULL, NULL, NULL); 
 		return NOT_SUCCESS;
 	}
 
@@ -34,7 +31,7 @@ int serverManager(int portNumber) {
 	{
 		printf("The string \"%s\" cannot be converted into an ip address. ending program.\n",
 			LOCALHOST);
-		ServerMainFreeResources(MainSocket, threadParams, NULL, NULL, NULL);
+		ServerMainFreeResources(MainSocket, NULL, NULL, NULL);
 		return NOT_SUCCESS;
 	}
 	service.sin_family = AF_INET;
@@ -48,7 +45,7 @@ int serverManager(int portNumber) {
 	if (bindRes == SOCKET_ERROR)
 	{
 		printf("bind( ) failed with error %ld. Ending program\n", WSAGetLastError());
-		ServerMainFreeResources(MainSocket, threadParams, NULL, NULL, NULL);
+		ServerMainFreeResources(MainSocket, NULL, NULL, NULL);
 		return NOT_SUCCESS;
 	}
 	printf("socket bounded.\n");
@@ -59,19 +56,19 @@ int serverManager(int portNumber) {
 	{		
 		//Free resources: close socket, free address struct(?), WASCleanup, return -1
 		printf("Failed listening on socket, error %ld.\n", WSAGetLastError());
-		ServerMainFreeResources(MainSocket, threadParams, NULL, NULL, NULL);
+		ServerMainFreeResources(MainSocket, NULL, NULL, NULL); 
 		return NOT_SUCCESS;
 	}
 	printf("listening to IP: %s port %d\n", LOCALHOST, portNumber);
 
 	//Create syncronization mechanisms
 	if (NOT_SUCCESS == getEvents(&lockEvent, &syncEvent, &FailureEvent)) {
-		ServerMainFreeResources(MainSocket, threadParams, NULL, NULL, NULL);
+		ServerMainFreeResources(MainSocket, NULL, NULL, NULL);
 		return NOT_SUCCESS;
 	}
 	//Create Failure thread and Exit Thread
 	if (NOT_SUCCESS == createFailureAndExitThreads(threadParams, threadHandles, &MainSocket)) {
-		ServerMainFreeResources(MainSocket, threadParams, lockEvent, syncEvent, FailureEvent);
+		ServerMainFreeResources(MainSocket, lockEvent, syncEvent, FailureEvent);
 		return NOT_SUCCESS;
 	}
 	printf("Waiting for a client to connect\n");
@@ -79,54 +76,40 @@ int serverManager(int portNumber) {
 	//<------ Wait for clients to connect ------>
 	while (1) {
 		SOCKET AcceptSocket = accept(MainSocket, NULL, NULL);
-		printf("manager done waiting\n");
-		if (AcceptSocket == INVALID_SOCKET) //How should we handle this? close the program or continue as usual?
-		{
-
-			if (WSAENOTSOCK == GetLastError()) {
-				break;
+		if (AcceptSocket == INVALID_SOCKET)
+		{	
+			if (WSAEINTR == GetLastError()) {//The MainSocket was closed by FailureThread or exitThread
+				break; //Free resources and shut down program
 			}
-			printf("Accepting connection with client failed, error %ld\n", WSAGetLastError());
-			continue;
+			else {
+				printf("Accepting connection with client failed, error %ld\n", WSAGetLastError());
+				continue;
+			}
 		}
 		printf("Client Connected.\n");
 
 		//Get the index of the first unused slot
-		index = FindFirstUnusedThreadSlot(threadHandles, threadParams); //Doesn't seem to work - WFSO returns 0 and doesn't timeout
+		index = FindFirstUnusedThreadSlot(threadHandles, threadParams); 
 
-		threadParams[index] = initThreadParam(AcceptSocket, index, &players, &PlayersCount, NULL); //initialize parameters for this thread
+		threadParams[index] = initThreadParam(AcceptSocket, index, &numOfPlayersInGame, &numOfPlayersSyncing, NULL); //initialize parameters for this thread
 		if (threadParams[index] == NULL) { //If this fails, close the socket and wait for another client
 			closesocket(AcceptSocket);
-			continue;
+			break;
 		}
 		if (index == MAX_NUM_OF_PLAYERS) //maximum number of clients are connected
 		{
-			threadParams[index]->socket = AcceptSocket; //The serverIsFUll thread is responisble for closing this socket
-			threadHandles[index] = CreateThread(
-				NULL,
-				0,
-				(LPTHREAD_START_ROUTINE)ServerFullThread, //This type of thread lets the client know there's no room
-														//for another thread and then disconnects from it.
-				threadParams[index],
-				0,
-				NULL
-			);
+			threadHandles[index] = CreateThread( //Create a thread that will let client know server is full and disconnect from it.
+				NULL, 0, (LPTHREAD_START_ROUTINE)ServerFullThread, threadParams[index], 0, NULL);
 		}
 		else //If there is room for the client in the game
 		{
-			threadParams[index]->socket = AcceptSocket; //The service thread is responisble for closing this socket
-			threadHandles[index] = CreateThread(
-				NULL,
-				0,
-				(LPTHREAD_START_ROUTINE)ServiceThread,
-				threadParams[index],
-				0,
-				NULL
-			);
+			threadHandles[index] = CreateThread( //Create a serviceThread for the client to enter the game
+				NULL, 0, (LPTHREAD_START_ROUTINE)ServiceThread, threadParams[index], 0, NULL);
 		}
 	} //!while(1)
+
 	clearThreadsAndParameters(threadHandles, threadParams);
-	ServerMainFreeResources(MainSocket, threadParams, lockEvent, syncEvent, FailureEvent);
+	ServerMainFreeResources(NULL, lockEvent, syncEvent, FailureEvent);
 	printf("ServerManager is quitting\n");
 	return 0;
 
@@ -146,56 +129,26 @@ ThreadParam* initThreadParam(SOCKET socket, int index, int* players, int* Player
 }
 
 //TODO make sure this is doing the right things
-int ServerMainFreeResources(SOCKET MainSocket, ThreadParam** threadParams, HANDLE lockEvent, HANDLE syncEvent, HANDLE FailureEvent) { //Add all events and close handles
+int ServerMainFreeResources(SOCKET MainSocket, HANDLE lockEvent, HANDLE syncEvent, HANDLE FailureEvent) { //Add all events and close handles
 	if (NULL != MainSocket) {
 		if (closesocket(MainSocket) == SOCKET_ERROR)
 			printf("Failed to close MainSocket in ServerMainFreeResources(). error %ld\n", WSAGetLastError());
 	}
-	if (WSACleanup() == SOCKET_ERROR) {
-		printf("Failed to close Winsocket in ServerMainFreeResources(). error %ld\n", WSAGetLastError());
-	}
-	for (int i = 0; i < 5; i++) {
-		if (threadParams[i] != NULL) {
-			if (closesocket(threadParams[i]->socket) == SOCKET_ERROR) {
-				printf("Can't close socket, it might alraedy be closed\n");
-			}
-			free(threadParams[i]);
-		}
-	}
-	if (lockEvent != NULL && syncEvent != NULL && FailureEvent != NULL) {
+	if (lockEvent != NULL) {
 		CloseHandle(lockEvent);
+	}
+	if (syncEvent != NULL) {
 		CloseHandle(syncEvent);
+	}
+	if (FailureEvent != NULL) {
 		CloseHandle(FailureEvent);
 	}
-	return 1;
+	if (WSACleanup() == SOCKET_ERROR) {
+		printf("Failed to close Winsocket in ServerMainFreeResources(). error %ld\n", WSAGetLastError());
+		return NOT_SUCCESS;
+	}
+	return SUCCESS;
 }
-//
-//void TerminateServiceThreads(HANDLE* threadHandles, SOCKET* threadParams) //Needed?
-//{
-//	int index;
-//
-//	for (index = 0; index < MAX_NUM_OF_PLAYERS; index++)
-//	{
-//		if (threadHandles[index] != NULL)
-//		{ 
-//			//<------change this to terminate thread!! ----->
-//			// poll to check if thread finished running:
-//			DWORD Res = WaitForSingleObject(threadHandles[index], INFINITE); //--->can't be infinite
-//			if (Res == WAIT_OBJECT_0)
-//			{
-//				closesocket(threadParams[index]);
-//				CloseHandle(threadHandles[index]);
-//				threadHandles[index] = NULL;
-//				break;
-//			}
-//			else
-//			{
-//				printf("CleanupServiceThreads: Waiting for thread failed\n");
-//				return;
-//			}
-//		}
-//	}
-//}
 
 int FindFirstUnusedThreadSlot(HANDLE* threadHandles, ThreadParam** threadParams){
 	DWORD waitcode;
@@ -230,7 +183,9 @@ int createFailureAndExitThreads(ThreadParam** threadParams, HANDLE* threadHandle
 		return NOT_SUCCESS;
 	}
 	threadParams[EXIT_THREAD_INDEX] = initThreadParam(NULL, NULL, NULL, NULL, p_socket);
-	if (threadParams[FAILURE_THREAD_INDEX] == NULL) {
+	if (threadParams[EXIT_THREAD_INDEX] == NULL) {
+		free(threadParams[FAILURE_THREAD_INDEX]);
+		threadParams[FAILURE_THREAD_INDEX] = NULL;
 		return NOT_SUCCESS;
 	}
 	threadHandles[FAILURE_THREAD_INDEX] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)FailureThread, threadParams[FAILURE_THREAD_INDEX], 0, NULL);
@@ -246,37 +201,29 @@ void FailureThread(ThreadParam* lpParam) {
 		return NOT_SUCCESS; 
 	}
 	p_param = (ThreadParam*)lpParam;
-	//SOCKET* p_socket = p_param->p_socket; TODO
+	SOCKET* p_socket = p_param->p_socket;
 	HANDLE lockEvent = NULL, syncEvent = NULL, FailureEvent = NULL;
 	DWORD waitcode;
-	if (1 != getEvents(&lockEvent, &syncEvent, &FailureEvent)) {
+	//<-----Open FailureEvent handle------>
+	if (1 != getEvents(&lockEvent, &syncEvent, &FailureEvent)) { 
 		printf("error. can't getEvents (FailureThread)\n");
-		//TerminateAllThread(threadHandles); //TODO change this to close MainSocket
+		if (closesocket(*p_socket) == SOCKET_ERROR)
+			printf("Failed to close MainSocket in FailureThread. error %ld\n", WSAGetLastError());
+		return;
 	}
-	waitcode = WaitForSingleObject(FailureEvent, INFINITE);
-	if (waitcode != WAIT_OBJECT_0) {
-		printf("An error occured when waiting for FailureThread\n");
+	//<-------Wait for failure----->
+	waitcode = WaitForSingleObject(FailureEvent, INFINITE); //Wait for failure event to be set
+	if (waitcode != WAIT_OBJECT_0) { //If FailureEvent was not set, don't close the main socket
+		printf("FailureThread finishing without failureEvent being set\n");
+		return;
 	}
-		printf("FailureThread: terminating all threads and shutting program down\n");
-		//TerminateAllThread(threadHandles); //TODO change this to close MainSocket
-}
-
-void TerminateAllThread(HANDLE* threadHandles) {
-	for (int i = 0; i < MAX_NUM_OF_PLAYERS + 1; i++) {
-		if (!TerminateThread(threadHandles[i], NOT_SUCCESS)) {
-			printf("Thread terminated\n");
-		}
-		else
-			printf("Thread not terminated\n");
-	}
-	printf("Telling parent ServerManager to stop waiting for accept()");
-	//make parent thread not wait for accept()
+	//If failureEvent was set, close the main socket
+	if (closesocket(*p_socket) == SOCKET_ERROR)
+		printf("Failed to close MainSocket in FailureThread. error %ld\n", WSAGetLastError());
 }
 
 void exitThread(ThreadParam* lpParam) {
 	ThreadParam* p_param;
-	int retval;
-	u_long iMode = 1;
 	if (NULL == lpParam) {
 		printf("exit thread can't work with NULL as parameters\n");
 		return NOT_SUCCESS;
@@ -286,9 +233,10 @@ void exitThread(ThreadParam* lpParam) {
 	char str[5];
 	while (1) {
 		if (scanf_s("%s", str,  5)){
-			if (!strcmp(str, "exit") || !strcmp(str, "exit\n")) {
-				printf("Telling parent ServerManager to stop waiting for accept()\n");
-				closesocket(*p_socket);
+			str[4] = '\0';
+			if (!strcmp(str, "exit")) {
+				if (closesocket(*p_socket) == SOCKET_ERROR) //Close the main socket
+					printf("Failed to close MainSocket in exitThread. error %ld\n", WSAGetLastError());
 				break;
 			}
 		}
@@ -300,15 +248,16 @@ int clearThreadsAndParameters(HANDLE* threadHandles, ThreadParam** threadParams)
 	for (int i = 0; i < MAX_NUM_OF_PLAYERS+ NUM_OF_OVERHEAD_THREADS; i++) {
 		if (threadHandles[i] != NULL) {
 			waitcode = WaitForSingleObject(threadHandles[i], 1);
-			if (waitcode != WAIT_OBJECT_0) {
+			if (waitcode != WAIT_OBJECT_0) { //If thread is active, free its parameters and terminate it
 				if (i <= MAX_NUM_OF_PLAYERS) {
-					closesocket(threadParams[i]->socket); //TODO - should we check threadparams[i] != NULL?
+					if (closesocket(threadParams[i]->socket) == SOCKET_ERROR)
+						printf("Failed to close MainSocket in ServerMainFreeResources(). error %ld\n", WSAGetLastError());
 				}
 				TerminateThread(threadHandles[i] != NULL, -1);
 			}
 			CloseHandle(threadHandles[i]);
 		}
-		if (threadParams[i] != NULL) {
+		if (threadParams[i] != NULL) { //In case parameters were created but the thread was not created
 			free(threadParams[i]);
 			threadParams[i] = NULL;
 		}
