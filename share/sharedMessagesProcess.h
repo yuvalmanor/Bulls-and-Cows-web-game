@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <string.h>
 #include "hardcodeddata.h"
-#include "stringProcessor.h"
 #include "SocketSendRecvTools.h"
 
 #define MSG_TYPE_LEN 28
