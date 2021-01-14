@@ -92,7 +92,7 @@ DWORD ServiceThread(void* lpParam) {
 	if (retVal == QUIT)
 		confirmShutdown(socket);
 	else {
-		if (!closesocket(socket))
+		if (closesocket(socket))
 			printf("closesocket failed. Error code: %d\n", GetLastError());
 		if (retVal == NOT_SUCCESS) {
 			if (!SetEvent(failureEvent)) {
@@ -420,14 +420,15 @@ void freeServiceThreadResources(SOCKET socket, HANDLE lockEvent, HANDLE syncEven
 }
 int SyncTwoThreads(SOCKET socket, int* p_numOfPlayersSyncing, int* p_numOfPlayersInGame, HANDLE lockEvent, HANDLE syncEvent, int waitTime) {
 	DWORD waitcode;
+	int retVal;
 	waitcode = WaitForSingleObject(lockEvent, waitTime);
 	if (waitcode != WAIT_OBJECT_0) {
 		if (waitcode == WAIT_TIMEOUT) { return DISCONNECTED; }
 		else { return NOT_SUCCESS; }
 	}
-	// < ------ - safe zone-------> ////CHECK SetEvent ERROR CODE!
+	// < ------- safe zone-------> 
 	(*p_numOfPlayersSyncing)++;
-	if (*p_numOfPlayersSyncing == 2) {
+	if (*p_numOfPlayersSyncing == 2) { //If this is the second client entering the safe zone, set syncEvent
 		if (!SetEvent(syncEvent)) {
 			printf("SetEvent failed(SyncTwoThreads) %d\n", GetLastError());
 			return NOT_SUCCESS;
@@ -438,10 +439,20 @@ int SyncTwoThreads(SOCKET socket, int* p_numOfPlayersSyncing, int* p_numOfPlayer
 		return NOT_SUCCESS;
 	}
 	//<--------end of safe zone------>
-	WaitForSingleObject(syncEvent, USER_WAITTIME);
-	if (waitcode != WAIT_OBJECT_0) {
-		if (waitcode == WAIT_TIMEOUT) { return MAIN_MENU; }
-		else { return NOT_SUCCESS; }
+	while (1) { //Wait for the other thread to set syncEvent
+		waitcode = WaitForSingleObject(syncEvent, POLLING_TIME);//Check if other player was disconnected every POLLING_TIME ms
+		if (waitcode != WAIT_OBJECT_0) { //If event was not yet set - check status
+			if (waitcode == WAIT_TIMEOUT) {//If POLLING_TIME passed, check if opponent left the game
+				retVal = opponentLeftGame(socket, p_numOfPlayersInGame, lockEvent);
+				if (GAME_STILL_ON == retVal)//If opponent is stil playing, keep waiting for event
+					continue;
+				return retVal;
+			}
+			else return NOT_SUCCESS;
+		}
+		else { //if Event was set by the other thread, continue with the game
+			break;
+		}
 	}
 	WaitForSingleObject(lockEvent, waitTime);
 	if (waitcode != WAIT_OBJECT_0) {
@@ -451,7 +462,7 @@ int SyncTwoThreads(SOCKET socket, int* p_numOfPlayersSyncing, int* p_numOfPlayer
 
 	//<------- safe zone ------->
 	(*p_numOfPlayersSyncing)--;
-	if (*p_numOfPlayersSyncing == 0) {
+	if (*p_numOfPlayersSyncing == 0) { //If this is the second client entering the safe zone, reset syncEvent
 		if (!ResetEvent(syncEvent)) {
 			printf("ResetEvent failed(SyncTwoThreads) %d\n", GetLastError());
 			return NOT_SUCCESS;

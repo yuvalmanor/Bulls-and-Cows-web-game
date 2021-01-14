@@ -12,7 +12,7 @@
 #define SUCCESS 1
 #define NOT_SUCCESS -1
 #define DISCONNECTED -2
-#define MAIN_MENU 1
+#define MAIN_MENU 4
 #define GAME_STILL_ON 2
 #define QUIT 3
 
