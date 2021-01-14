@@ -422,56 +422,46 @@ int SyncTwoThreads(SOCKET socket, int* p_numOfPlayersSyncing, int* p_numOfPlayer
 		else { return NOT_SUCCESS; }
 	}
 	// < ------ - safe zone-------> ////CHECK SetEvent ERROR CODE!
-		(*p_numOfPlayersSyncing)++;
-		if (*p_numOfPlayersSyncing == 2) {
-			if (!SetEvent(syncEvent)) {
-				printf("SetEvent failed(SyncTwoThreads) %d\n", GetLastError());
-				return NOT_SUCCESS;
-			}
-		}
-		if (!SetEvent(lockEvent)) {
+	(*p_numOfPlayersSyncing)++;
+	if (*p_numOfPlayersSyncing == 2) {
+		if (!SetEvent(syncEvent)) {
 			printf("SetEvent failed(SyncTwoThreads) %d\n", GetLastError());
 			return NOT_SUCCESS;
 		}
-		//<--------end of safe zone------>
-		while (1) {
-			waitcode = WaitForSingleObject(syncEvent, POLLING_TIME);
-			if (waitcode != WAIT_OBJECT_0) {
-				if (waitcode == WAIT_TIMEOUT) {
-					if (!opponentLeftGame(socket, p_numOfPlayersInGame, lockEvent))
-						continue;
-					return MAIN_MENU;
-				}
-				else return NOT_SUCCESS;
-			}
-			else {
-				break;
-			}
-		}
+	}
+	if (!SetEvent(lockEvent)) {
+		printf("SetEvent failed(SyncTwoThreads) %d\n", GetLastError());
+		return NOT_SUCCESS;
+	}
+	//<--------end of safe zone------>
+	WaitForSingleObject(syncEvent, USER_WAITTIME);
+	if (waitcode != WAIT_OBJECT_0) {
+		if (waitcode == WAIT_TIMEOUT) { return MAIN_MENU; }
+		else { return NOT_SUCCESS; }
+	}
+	WaitForSingleObject(lockEvent, waitTime);
+	if (waitcode != WAIT_OBJECT_0) {
+		if (waitcode == WAIT_TIMEOUT) { return DISCONNECTED; }
+		else { return NOT_SUCCESS; }
+	}
 
-		WaitForSingleObject(lockEvent, waitTime);
-		if (waitcode != WAIT_OBJECT_0) {
-			if (waitcode == WAIT_TIMEOUT) { return DISCONNECTED; }
-			else { return NOT_SUCCESS; }
-		}
-
-		//<------- safe zone ------->
-		(*p_numOfPlayersSyncing)--;
-		if (*p_numOfPlayersSyncing == 0) {
-			if (!ResetEvent(syncEvent)) {
-				printf("ResetEvent failed(SyncTwoThreads) %d\n", GetLastError());
-				return NOT_SUCCESS;
-			}
-		}
-	
-		if (!SetEvent(lockEvent)) {
-			printf("SetEvent failed(SyncTwoThreads) %d\n", GetLastError());
+	//<------- safe zone ------->
+	(*p_numOfPlayersSyncing)--;
+	if (*p_numOfPlayersSyncing == 0) {
+		if (!ResetEvent(syncEvent)) {
+			printf("ResetEvent failed(SyncTwoThreads) %d\n", GetLastError());
 			return NOT_SUCCESS;
 		}
-	//<-------- end of safe zone------>
+	}
+	if (!SetEvent(lockEvent)) {
+		printf("SetEvent failed(SyncTwoThreads) %d\n", GetLastError());
+		return NOT_SUCCESS;
+	}
+		//<-------- end of safe zone------>
 
 	return GAME_STILL_ON;
 }
+
 int startGame(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncEvent, int playerOne, int* p_numOfPlayersInGame, char* username, char* opponentName, int* p_numOfPlayersSyncing) {
 	int status, results;
 	char* p_serverMsg = NULL, * p_opponentGuess = NULL, * p_userNum = NULL, * p_opponentNum = NULL, * p_userGuess = NULL;
