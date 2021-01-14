@@ -336,15 +336,15 @@ int opponentQuit(char* message, Message* serverMsg, SOCKET c_socket) {
 	int status;
 	if (!strcmp(message, "SERVER_OPPONENT_QUIT")) {
 		printf("Opponent quit.\n");
-		status = getMessage(c_socket, &serverMsg, RESPONSE_WAITTIME);
+		/*status = getMessage(c_socket, &serverMsg, RESPONSE_WAITTIME);
 		if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return START_AGAIN;
 		else if (TRNS_FAILED == status) return NOT_SUCCESS;
 		if (strcmp(serverMsg->type, "SERVER_MAIN_MENU")) {
 			printf("Message invalid. This is the message recived: %s", serverMsg->type);
 			free(serverMsg);
-			return NOT_SUCCESS;
-		}
-		free(serverMsg);
+			return NOT_SUCCESS;*/
+		
+		//free(serverMsg);
 		return START_AGAIN;
 	}
 	else

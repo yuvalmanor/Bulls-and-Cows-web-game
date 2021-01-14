@@ -446,6 +446,7 @@ int SyncTwoThreads(SOCKET socket, int* p_numOfPlayersSyncing, int* p_numOfPlayer
 				retVal = opponentLeftGame(socket, p_numOfPlayersInGame, lockEvent);
 				if (GAME_STILL_ON == retVal)//If opponent is stil playing, keep waiting for event
 					continue;
+				(*p_numOfPlayersSyncing)--;
 				return retVal;
 			}
 			else return NOT_SUCCESS;
@@ -738,7 +739,7 @@ int opponentLeftGame(SOCKET socket, int* p_numOfPlayersInGame, HANDLE lockEvent)
 			return NOT_SUCCESS;
 	}
 	if ((*p_numOfPlayersInGame) != 2) {
-		p_serverMsg = prepareMsg("SERVER_NO_OPPONENTS", NULL);
+		p_serverMsg = prepareMsg("SERVER_OPPONENT_QUIT", NULL);
 		if (NULL == p_serverMsg) {
 			if (!SetEvent(lockEvent)) 
 				printf("Error when setEvent (opponentLeftGame). Error code: %d.\n", GetLastError());
