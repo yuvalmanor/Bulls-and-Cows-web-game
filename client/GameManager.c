@@ -146,8 +146,9 @@ int GameIsOn(SOCKET c_socket) {
 	if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return START_AGAIN;
 	else if (TRNS_FAILED == status) return NOT_SUCCESS;
 	if (strcmp(p_serverMsg->type, "SERVER_SETUP_REQUEST")) {
-		if (START_AGAIN == opponentQuit(p_serverMsg->type, p_serverMsg, c_socket))
-			return START_AGAIN;
+		status = opponentQuit(p_serverMsg->type, p_serverMsg, c_socket);
+		if (CONTINUE != status)
+			return status;
 	}
 	//<--- if message is SERVER_SETUP_REQUEST --->
 	printf("Choose your 4 digits:\n");
@@ -165,12 +166,11 @@ int GameIsOn(SOCKET c_socket) {
 		status = getMessage(c_socket, &p_serverMsg, RESPONSE_WAITTIME);
 		if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return START_AGAIN;
 		else if (TRNS_FAILED == status) return NOT_SUCCESS;
-		if (START_AGAIN == opponentQuit(p_serverMsg->type,p_serverMsg,c_socket)) return START_AGAIN;
 		//<--- check if message is SERVER_PLAYER_MOVE_REQUEST --->
 		if (strcmp(p_serverMsg->type, "SERVER_PLAYER_MOVE_REQUEST")) {
-			printf("Message invalid. This is the message recived: %s", p_serverMsg->type);
-			free(p_serverMsg);
-			return NOT_SUCCESS;
+			status = opponentQuit(p_serverMsg->type, p_serverMsg, c_socket);
+			if (CONTINUE != status)
+				return status;
 		}
 		free(p_serverMsg); p_serverMsg = NULL;
 		printf("Choose your guess:\n");
@@ -186,7 +186,9 @@ int GameIsOn(SOCKET c_socket) {
 		status = getMessage(c_socket, &p_serverMsg, USER_WAITTIME);//USER_WAITTIME because server waits for opponent to enter his move
 		if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return START_AGAIN;
 		else if (TRNS_FAILED == status) return NOT_SUCCESS;
-		if (START_AGAIN == opponentQuit(p_serverMsg->type,p_serverMsg,c_socket)) return START_AGAIN;
+		status = opponentQuit(p_serverMsg->type, p_serverMsg, c_socket);
+		if (CONTINUE != status)
+			return status;
 		//<---Continue according to GAME RESULTS--->
 		//<---If there is no winner yet--->
 		if (!strcmp(p_serverMsg->type, "SERVER_GAME_RESULTS")) { 
@@ -334,7 +336,9 @@ int opponentQuit(char* message, Message* serverMsg, SOCKET c_socket) {
 	int status;
 	if (!strcmp(message, "SERVER_OPPONENT_QUIT")) {
 		printf("Opponent quit.\n");
-		status = getMessage(c_socket, &serverMsg, RESPONSE_WAITTIME); //need to check errors
+		status = getMessage(c_socket, &serverMsg, RESPONSE_WAITTIME);
+		if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return START_AGAIN;
+		else if (TRNS_FAILED == status) return NOT_SUCCESS;
 		if (strcmp(serverMsg->type, "SERVER_MAIN_MENU")) {
 			printf("Message invalid. This is the message recived: %s", serverMsg->type);
 			free(serverMsg);
