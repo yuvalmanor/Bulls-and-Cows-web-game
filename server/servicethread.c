@@ -467,7 +467,7 @@ int startGame(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncE
 	char* p_serverMsg = NULL, * p_opponentGuess = NULL, * p_userNum = NULL, * p_opponentNum = NULL, * p_userGuess = NULL;
 	Message* p_clientMsg = NULL;
 // TODO  - Yuval need to compress everthing befor the while(1) to function.
-	status = opponentLeftGame(socket, p_numOfPlayersInGame, lockEvent);
+	/*status = opponentLeftGame(socket, p_numOfPlayersInGame, lockEvent);
 	if (GAME_STILL_ON != status) return status;
 	//<---send SERVER_INVITE--->
 	p_serverMsg = prepareMsg("SERVER_INVITE:", opponentName);
@@ -512,13 +512,17 @@ int startGame(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncE
 	if (NOT_SUCCESS == readFromFile(h_sharedFile, SECRETNUM_OFFSET, &p_opponentNum, playerOne, 0)) {
 		free(p_userNum);
 		return NOT_SUCCESS;
-	}
+	}*/
+	status = secretNumInit(socket, h_sharedFile, lockEvent, syncEvent, playerOne, p_numOfPlayersInGame,
+		opponentName, p_numOfPlayersSyncing, &p_userNum, &p_opponentNum);
+	if (status != SUCCESS) return status;
+	// while (1)
 	while (1) {
 		status = opponentLeftGame(socket, p_numOfPlayersInGame, lockEvent);
 		if (GAME_STILL_ON != status) {
 			freeSingleGameMemory(p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
 			return status;
-		}
+		} 
 		//<---send SERVER_PLAYER_MOVE_REQUEST--->
 		p_serverMsg = prepareMsg("SERVER_PLAYER_MOVE_REQUEST", NULL);
 		if (NULL == p_serverMsg) {
@@ -586,6 +590,60 @@ int startGame(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncE
 			return MAIN_MENU;
 		}
 	}
+}
+int secretNumInit(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncEvent, int playerOne,
+	int* p_numOfPlayersInGame, char* opponentName, int* p_numOfPlayersSyncing, char** p_userNum, char** p_opponentNum) {
+	int status;
+	char* p_serverMsg = NULL, *p_opponentNumTmp = NULL;
+	Message* p_clientMsg = NULL;
+	status = opponentLeftGame(socket, p_numOfPlayersInGame, lockEvent);
+	if (GAME_STILL_ON != status) return status;
+	//<---send SERVER_INVITE--->
+	p_serverMsg = prepareMsg("SERVER_INVITE:", opponentName);
+	if (NULL == p_serverMsg) return NOT_SUCCESS;
+	status = SendString(p_serverMsg, socket);
+	free(p_serverMsg);
+	if (TRNS_FAILED == status) return DISCONNECTED;
+	//<---send SERVER_SETUP_REQUSET--->
+	p_serverMsg = prepareMsg("SERVER_SETUP_REQUSET", NULL);
+	if (NULL == p_serverMsg) return NOT_SUCCESS;
+	status = SendString(p_serverMsg, socket);
+	free(p_serverMsg);
+	if (TRNS_FAILED == status) return DISCONNECTED;
+	//<---recive message from client--->
+	status = getMessage(socket, &p_clientMsg, USER_WAITTIME);
+	if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return DISCONNECTED;
+	else if (TRNS_FAILED == status) return NOT_SUCCESS;
+	if (strcmp(p_clientMsg->type, "CLIENT_SETUP")) {
+		free(p_clientMsg);
+		return NOT_SUCCESS;
+	}
+	*p_userNum = p_clientMsg->guess;
+	free(p_clientMsg);
+	//<---write to shared file the user secret number--->
+	status = writeToFile(h_sharedFile, SECRETNUM_OFFSET, *p_userNum, playerOne, 0);
+	if (NOT_SUCCESS == status) {
+		free(*p_userNum);
+		return NOT_SUCCESS;
+	}
+	status = opponentLeftGame(socket, p_numOfPlayersInGame, lockEvent);
+	if (GAME_STILL_ON != status) {
+		free(*p_userNum);
+		return status;
+	}
+	//<---wait that opponent thread write his secret number to shared file--->
+	status = SyncTwoThreads(socket, p_numOfPlayersSyncing, p_numOfPlayersInGame, lockEvent, syncEvent, USER_WAITTIME);
+	if (GAME_STILL_ON != status) {
+		free(*p_userNum);
+		return status;
+	}
+	//<---read opponent secret number from shared file--->
+	if (NOT_SUCCESS == readFromFile(h_sharedFile, SECRETNUM_OFFSET, &p_opponentNumTmp, playerOne, 0)) {
+		free(*p_userNum);
+		return NOT_SUCCESS;
+	}
+	*p_opponentNum = p_opponentNumTmp;
+	return SUCCESS;
 }
 int getResults(char** resultMsg, char* username, char* opponentName, char* userNum, char* opponentNum, char* userGuess, char* opponentGuess) {
 	char* p_resultMsg = NULL, c_bulls, c_cows;

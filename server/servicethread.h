@@ -54,6 +54,8 @@ int SyncTwoThreads(SOCKET socket, int* p_numOfPlayersSyncing, int* p_numOfPlayer
 * returns: NOT_SUCCESS or MAIN_MENU or DISCONNECTED
 */
 int startGame(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncEvent, int playerOne, int* p_players, char* username, char* opponentName, int* p_playersCount);
+int secretNumInit(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncEvent, int playerOne,
+	int* p_numOfPlayersInGame, char* opponentName, int* p_numOfPlayersSyncing, char** p_userNum, char** p_opponentNum);
 /*Description: getResults calculates the game results and prepares the server message that will be sent to
 * client.
 * Arguments:
