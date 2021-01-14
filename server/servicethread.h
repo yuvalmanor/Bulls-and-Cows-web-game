@@ -31,6 +31,7 @@ static numOfPlayers = 0;
 
 DWORD ServiceThread(void* lpParam);
 int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_players, int* playerOne, char* username, char** otherUsername); int getUserNameAndApproveClient(SOCKET socket, char** username);
+int ExchangeClientsNames(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_numOfPlayersInGame, int* p_playerOne, char** p_username, char** p_opponentUsername);
 int getUserNameAndApproveClient(SOCKET socket, char** username);
 HANDLE openOrCreateFile(int* playerOne);
 int writeToFile(HANDLE h_file, int offset, char* data, int playerOne, int writeUsername);

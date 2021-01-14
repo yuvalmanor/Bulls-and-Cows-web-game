@@ -11,7 +11,6 @@ int playGame(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* i
 		if (status ==NOT_SUCCESS ) return NOT_SUCCESS;
 		else if (status == EXIT) return SUCCESS;
 		while (1) { //I changed the case of START_AGAIN to continue, is this ok?
-			printf("Getting SERVER_MAIN_MENU\n");
 			status = getMessage(c_socket, &p_serverMsg, RESPONSE_WAITTIME);
 			if (TRNS_SUCCEEDED != status) { //Yuval checked it. comment still here to flag the place
 				if (SUCCESS != checkTRNSCode(status, ip, portNumber, c_socket, clientService))
@@ -24,7 +23,6 @@ int playGame(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* i
 				free(p_serverMsg);
 				return NOT_SUCCESS;
 			}
-			printf("Got SERVER_MAIN_MENU\n");
 			free(p_serverMsg);
 			choice = menu(MAIN, ip, 0);
 			if (1 == choice) {
@@ -70,7 +68,6 @@ int setup(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* ip, 
 			printf("send failed(setup)");
 			return NOT_SUCCESS;
 		}
-		printf("CLIENT_REQUEST sent\nHoping to get SERVER_APPROVED\n");
 		status = getMessage(c_socket, &p_serverMsg, RESPONSE_WAITTIME);
 		if (TRNS_SUCCEEDED != status) { 
 			free(p_clientMsg);
@@ -79,7 +76,6 @@ int setup(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* ip, 
 			else
 				continue;
 		}
-		printf("Got message from server: %s\n", p_serverMsg->type);
 		if (!strcmp(p_serverMsg->type, "SERVER_APPROVED")) {
 			free(p_clientMsg);
 			free(p_serverMsg);

@@ -16,7 +16,6 @@ int serverManager(int portNumber) {
 	}
 	// <-----Create a socket----->   
 	MainSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	printf("Socket created.\n");
 	if (MainSocket == INVALID_SOCKET)
 	{
 		//Free resources, WSACleanup and end program with -1
@@ -48,7 +47,6 @@ int serverManager(int portNumber) {
 		ServerManagerFreeResources(MainSocket, NULL, NULL, NULL);
 		return NOT_SUCCESS;
 	}
-	printf("socket bounded.\n");
 
 	// <-------Listen on the Socket------->
 	ListenRes = listen(MainSocket, SOMAXCONN);
@@ -59,7 +57,6 @@ int serverManager(int portNumber) {
 		ServerManagerFreeResources(MainSocket, NULL, NULL, NULL); 
 		return NOT_SUCCESS;
 	}
-	printf("listening to IP: %s port %d\n", LOCALHOST, portNumber);
 
 	//Create syncronization mechanisms
 	if (NOT_SUCCESS == getEvents(&lockEvent, &syncEvent, &FailureEvent)) {
@@ -71,7 +68,6 @@ int serverManager(int portNumber) {
 		ServerManagerFreeResources(MainSocket, lockEvent, syncEvent, FailureEvent);
 		return NOT_SUCCESS;
 	}
-	printf("Waiting for a client to connect\n");
 
 	//<------ Wait for clients to connect ------>
 	while (1) {

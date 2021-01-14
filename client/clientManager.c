@@ -13,7 +13,6 @@ int clientManager(char* ip, int portNumber, char* username) {
 	}
 	// <-----Create a socket----->   
 	c_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	printf("Socket created.\n");
 	if (c_socket == INVALID_SOCKET)
 	{
 		//Free resources, WSACleanup and end program with -1

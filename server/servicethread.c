@@ -103,7 +103,72 @@ DWORD ServiceThread(void* lpParam) {
 	}
 	return 0;
 }
-int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_numOfPlayersInGame, int* playerOne, char* username, char** otherUsername) {
+int getEvents(HANDLE* lockEvent, HANDLE* syncEvent, HANDLE* FailureEvent) // CHECK THIS
+{
+	/* Get handle to event by name. If the event doesn't exist, create it */
+	(*lockEvent) = CreateEvent(
+		NULL, /* default security attributes */
+		FALSE,       /* auto-reset event */
+		TRUE,      /* initial state is signaled */
+		lockEvent_name);         /* name */
+	/* Check if succeeded and handle errors */
+	if (*lockEvent == NULL) {
+		printf("Counldn't create Event. Error: %d\n", GetLastError());
+		return NOT_SUCCESS;
+	}
+	(*syncEvent) = CreateEvent(
+		NULL, /* default security attributes */
+		TRUE,       /* manual-reset event */
+		FALSE,      /* initial state is non-signaled */
+		syncEvent_name);         /* name */
+	if (*syncEvent == NULL) {
+		printf("Counldn't create Event. Error: %d\n", GetLastError());
+		CloseHandle(*lockEvent);
+		return NOT_SUCCESS;
+	}
+	(*FailureEvent) = CreateEvent(
+		NULL, /* default security attributes */
+		TRUE,       /* manual-reset event */
+		FALSE,      /* initial state is non-signaled */
+		failureEvent_name);         /* name */
+	if (*FailureEvent == NULL) {
+		printf("Counldn't create Event. Error: %d\n", GetLastError());
+		CloseHandle(*lockEvent);
+		CloseHandle(*syncEvent);
+		return NOT_SUCCESS;
+	}
+
+	return SUCCESS;
+}
+
+int getUserNameAndApproveClient(SOCKET socket, char** username) {
+	int retVal;
+	Message* message = NULL;
+	
+	retVal = getMessage(socket, &message, 15000); //Change waitTime to a DEFINED number 
+	if (retVal != TRNS_SUCCEEDED) {
+		printf("couldn't get username from client. Quitting\n");
+		return NOT_SUCCESS;
+	}
+	if (strcmp((message->type), "CLIENT_REQUEST") != 0) {
+		printf("message type is invalid, %s instead of CLIENT_REQUEST\n", message->type);
+		free(message);
+		return NOT_SUCCESS;
+	}
+	(*username) = message->username;
+	free(message);
+	char* p_rawMessage = "SERVER_APPROVED\n";
+	retVal = SendString(p_rawMessage, socket);
+	if (retVal != TRNS_SUCCEEDED) {
+		printf("Transfer failed when sending %s\n", p_rawMessage);
+		free(*username);
+		return DISCONNECTED;
+	}
+
+	return SUCCESS;
+}
+
+int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_numOfPlayersInGame, int* p_playerOne, char* p_username, char** p_opponentUsername) {
 	TransferResult_t transResult;
 	int retVal, offset = 0;
 	DWORD waitcode;
@@ -111,12 +176,13 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_numOfPla
 	HANDLE h_sharedFile = NULL;
 
 	//<---Send SERVER_MAIN_MENU to client--->
+	*p_playerOne = 0;
 	char* p_rawMessage = "SERVER_MAIN_MENU\n";
 	transResult = SendString(p_rawMessage, socket);
-	if (transResult != TRNS_SUCCEEDED) 
+	if (transResult != TRNS_SUCCEEDED)
 		return DISCONNECTED;
 	//<---Get response from client--->
-	retVal = getMessage(socket, &message, INFINITE); 
+	retVal = getMessage(socket, &message, INFINITE);
 	if (retVal != TRNS_SUCCEEDED) {
 		if (retVal == TRNS_DISCONNECTED)
 			return DISCONNECTED;
@@ -135,12 +201,21 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_numOfPla
 	//else- client chose CLIENT_VERSUS
 	free(message);
 	//----> Go to critical section
+	retVal = ExchangeClientsNames(socket, lockEvent, syncEvent, p_numOfPlayersInGame, p_playerOne, p_username, p_opponentUsername);
+	return retVal;
+}
+
+int ExchangeClientsNames(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_numOfPlayersInGame, int* p_playerOne, char** p_username, char** p_opponentUsername) {
+	DWORD waitcode;
+	TransferResult_t transResult;
+	HANDLE h_sharedFile = NULL;
+	int offset = 0;
 	waitcode = WaitForSingleObject(lockEvent, LOCKEVENT_WAITTIME);
 	if (waitcode != WAIT_OBJECT_0) {
 		printf("Waitcode is %d\nError code %d while waiting for lockEvent\n", waitcode, GetLastError());
 		return NOT_SUCCESS;
 	}
-		//<---In case there are less than 2 players--->
+	//<---In case there are less than 2 players--->
 	if (*p_numOfPlayersInGame != 2) {
 		if (*p_numOfPlayersInGame > 2) { // TODO - check if this case is possible
 			printf("Error: incorrect number of players\n");
@@ -160,47 +235,45 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_numOfPla
 		return MAIN_MENU;
 	}
 	//<---In case there are 2 players--->
-	h_sharedFile = openOrCreateFile(playerOne);
+	h_sharedFile = openOrCreateFile(p_playerOne);
 	if (h_sharedFile == INVALID_HANDLE_VALUE) {
 		if (!SetEvent(lockEvent)) { //release lockEvent
 			printf("SetEvent failed %d\n", GetLastError());
 		}
 		return NOT_SUCCESS;
 	}
-	// TODO - make this shorter
-	if (!*playerOne) { //If this is player 2
+	if (!*p_playerOne) { //If this is player 2
 		//get player 1's name
-		if (NOT_SUCCESS == readFromFile(h_sharedFile, 0, otherUsername, *playerOne, 1)) {
+		if (NOT_SUCCESS == readFromFile(h_sharedFile, 0, p_opponentUsername, *p_playerOne, 1)) {
 			CloseHandle(h_sharedFile);
 			SetEvent(lockEvent);
 			return NOT_SUCCESS;
 		}
-		offset = strlen(*otherUsername) + 1;
+		offset = strlen(*p_opponentUsername) + 1;
 	}
 	//Write username to the file
-	if (NOT_SUCCESS == writeToFile(h_sharedFile, offset, username, *playerOne, 1)) {
+	if (NOT_SUCCESS == writeToFile(h_sharedFile, offset, p_username, *p_playerOne, 1)) {
 		CloseHandle(h_sharedFile);
 		SetEvent(lockEvent);
 		return NOT_SUCCESS;
 	}
 	//if Player 2: username to the file, release syncEvent for player 1 to read their username from the file.
-	if (!*playerOne) {
+	if (!*p_playerOne) {
 		if (!SetEvent(syncEvent)) { //release syncEvent
 			printf("SetEvent failed %d\n", GetLastError());
 			CloseHandle(h_sharedFile);
-			if(!SetEvent(lockEvent))
+			if (!SetEvent(lockEvent))
 				printf("SetEvent failed %d\n", GetLastError());
 			return NOT_SUCCESS;
 		}
 	}
-
 	if (!SetEvent(lockEvent)) { //release lockEvent
 		printf("SetEvent failed %d\n", GetLastError());
 		CloseHandle(h_sharedFile);
 		return NOT_SUCCESS;
 	}
-	//---->out of the critical section
-	if (*playerOne) {
+	//<-------Out of the critical section------>
+	if (*p_playerOne) {
 		waitcode = WaitForSingleObject(syncEvent, USER_WAITTIME);
 		if (!ResetEvent(syncEvent)) { //lock syncEvent
 			printf("ResetEvent failed %d\n", GetLastError());
@@ -214,17 +287,16 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_numOfPla
 				transResult = SendString(p_rawMessage, socket);
 				if (transResult != TRNS_SUCCEEDED)
 					return DISCONNECTED;
-				else 
+				else
 					return MAIN_MENU; //message was sent. go back to main menu
-				
 			}
 			else {
 				printf("There was a problem with waiting for syncEvent\n");
 				return NOT_SUCCESS;
 			}
 		}
-		offset = strlen(username) + 1;
-		if (NOT_SUCCESS == readFromFile(h_sharedFile, offset, otherUsername, *playerOne, 1)) {//get player 2's name
+		offset = strlen(p_username) + 1;
+		if (NOT_SUCCESS == readFromFile(h_sharedFile, offset, p_opponentUsername, *p_playerOne, 1)) {//get player 2's name
 			CloseHandle(h_sharedFile);
 			return NOT_SUCCESS;
 		}
@@ -232,36 +304,7 @@ int Main_menu(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_numOfPla
 	CloseHandle(h_sharedFile);
 	return GAME_STILL_ON;
 }
-int getUserNameAndApproveClient(SOCKET socket, char** username) {
-	int retVal;
-	Message* message = NULL;
-	printf("Waiting for username from client\n");
-	
-	retVal = getMessage(socket, &message, 15000); //Change waitTime to a DEFINED number 
-	if (retVal != TRNS_SUCCEEDED) {
-		printf("couldn't get username from client. Quitting\n");
-		return NOT_SUCCESS;
-	}
-	if (strcmp((message->type), "CLIENT_REQUEST") != 0) {
-		printf("message type is invalid, %s instead of CLIENT_REQUEST\n", message->type);
-		free(message);
-		return NOT_SUCCESS;
-	}
-	(*username) = message->username;
-	free(message);
-	printf("Username is %s\n", *username);
-	printf("sending SERVER_APPROVED\n");
-	char* p_rawMessage = "SERVER_APPROVED\n";
-	retVal = SendString(p_rawMessage, socket);
-	if (retVal != TRNS_SUCCEEDED) {
-		printf("Transfer failed when sending %s\n", p_rawMessage);
-		free(*username);
-		return DISCONNECTED;
-	}
 
-	printf("SERVER_APPROVED sent\n");
-	return SUCCESS;
-}
 HANDLE openOrCreateFile(int* playerOne) {
 	DWORD dwDesiredAccess = 0, dwShareMode = 0, dwCreationDisposition = 0;
 	HANDLE hFile;
@@ -287,7 +330,6 @@ HANDLE openOrCreateFile(int* playerOne) {
 			FILE_ATTRIBUTE_NORMAL,
 			NULL);
 		(*playerOne) = 1;
-		printf("A new file was created\nPlayerOne: 1\n ");
 
 	}
 	else if (INVALID_HANDLE_VALUE == hFile) {
@@ -295,7 +337,6 @@ HANDLE openOrCreateFile(int* playerOne) {
 		return INVALID_HANDLE_VALUE;
 	}
 	else {
-		printf("An existing file was opened\nPlayerOne: 0\n ");
 		(*playerOne) = 0;
 
 	}
@@ -376,43 +417,6 @@ void freeServiceThreadResources(SOCKET socket, HANDLE lockEvent, HANDLE syncEven
 		CloseHandle(failureEvent);
 	if (username != NULL)
 		free(username);
-}
-int getEvents(HANDLE* lockEvent, HANDLE* syncEvent, HANDLE* FailureEvent) // CHECK THIS
-{
-	/* Get handle to event by name. If the event doesn't exist, create it */
-	(*lockEvent) = CreateEvent(
-		NULL, /* default security attributes */
-		FALSE,       /* auto-reset event */
-		TRUE,      /* initial state is signaled */
-		lockEvent_name);         /* name */
-	/* Check if succeeded and handle errors */
-	if (*lockEvent == NULL) {
-		printf("Counldn't create Event. Error: %d\n", GetLastError());
-		return NOT_SUCCESS;
-	}
-	(*syncEvent) = CreateEvent(
-		NULL, /* default security attributes */
-		TRUE,       /* manual-reset event */
-		FALSE,      /* initial state is non-signaled */
-		syncEvent_name);         /* name */
-	if (*syncEvent == NULL) {
-		printf("Counldn't create Event. Error: %d\n", GetLastError());
-		CloseHandle(*lockEvent);
-		return NOT_SUCCESS;
-	}
-	(*FailureEvent) = CreateEvent(
-		NULL, /* default security attributes */
-		TRUE,       /* manual-reset event */
-		FALSE,      /* initial state is non-signaled */
-		failureEvent_name);         /* name */
-	if (*FailureEvent == NULL) {
-		printf("Counldn't create Event. Error: %d\n", GetLastError());
-		CloseHandle(*lockEvent);
-		CloseHandle(*syncEvent);
-		return NOT_SUCCESS;
-	}
-
-	return SUCCESS;
 }
 int SyncTwoThreads(SOCKET socket, int* p_numOfPlayersSyncing, int* p_numOfPlayersInGame, HANDLE lockEvent, HANDLE syncEvent, int waitTime) {
 	DWORD waitcode;
