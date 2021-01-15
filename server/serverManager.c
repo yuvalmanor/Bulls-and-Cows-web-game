@@ -22,7 +22,7 @@ int serverManager(int portNumber) {
 	if (MainSocket == INVALID_SOCKET) {
 		//Free resources, WSACleanup and end program with -1
 		printf("Error at socket( ): %ld\n", WSAGetLastError());
-		ServerManagerFreeResources(NULL, NULL, NULL, NULL); 
+		ServerManagerFreeResources(INVALID_SOCKET, NULL, NULL, NULL); 
 		return NOT_SUCCESS;
 	}
 	//<------- Create a sockaddr_in object and set its values ----->
@@ -102,7 +102,7 @@ int serverManager(int portNumber) {
 	} //!while(1)
 
 	clearThreadsAndParameters(threadHandles, threadParams);
-	ServerManagerFreeResources(NULL, lockEvent, syncEvent, FailureEvent);
+	ServerManagerFreeResources(INVALID_SOCKET, lockEvent, syncEvent, FailureEvent);
 	printf("ServerManager is quitting\n");
 	return 0;
 
@@ -122,7 +122,7 @@ ThreadParam* initThreadParam(SOCKET socket, int* numOfPlayersInGame, int* numOfP
 }
 
 int ServerManagerFreeResources(SOCKET MainSocket, HANDLE lockEvent, HANDLE syncEvent, HANDLE FailureEvent) {
-	if (NULL != MainSocket) {
+	if (INVALID_SOCKET != MainSocket) {
 		if (closesocket(MainSocket) == SOCKET_ERROR)
 			printf("Failed to close MainSocket in ServerMainFreeResources(). error %ld\n", WSAGetLastError());
 	}
