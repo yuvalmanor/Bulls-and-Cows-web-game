@@ -1,3 +1,6 @@
+/*
+Description - Takes care of message processing. This is a shared module.
+ */
 #include "sharedMessagesProcess.h"
 
 int getMessage(SOCKET socket, Message** message, int waitTime) {
@@ -27,25 +30,6 @@ int getMessage(SOCKET socket, Message** message, int waitTime) {
 	}
 	free(p_rawMessage);
 	return TRNS_SUCCEEDED;
-}
-
-int sendMessage(SOCKET socket, char* rawMessage) {
-	char* p_rawMessage = rawMessage;
-	TransferResult_t transResult;
-
-	transResult = SendString(&p_rawMessage, socket);
-	if (transResult == TRNS_SUCCEEDED) {
-		return 1;
-	}
-	if (transResult == TRNS_FAILED) {
-		printf("transfer %s failed\n", p_rawMessage);
-		return 0;
-	}
-	else if (transResult == TRNS_DISCONNECTED) {
-		printf("transfer disconnected\n");
-		return -1;
-	}
-
 }
 
 Message* messageDecoder(char* messageStr){

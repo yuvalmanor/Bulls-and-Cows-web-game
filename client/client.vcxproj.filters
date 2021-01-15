@@ -27,16 +27,10 @@
     <ClInclude Include="..\share\sharedMessagesProcess.h">
       <Filter>Shared Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\share\SocketSendRecvTools.h">
-      <Filter>Shared Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\share\WinsockFunc.h">
       <Filter>Shared Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="clientManager.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="GameManager.h">
+    <ClInclude Include="ClientManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -44,19 +38,13 @@
     <ClCompile Include="..\share\sharedMessagesProcess.c">
       <Filter>Shared Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\share\SocketSendRecvTools.c">
-      <Filter>Shared Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\share\WinsockFunc.c">
       <Filter>Shared Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="clientManager.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="GameManager.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="main.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ClientManager.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

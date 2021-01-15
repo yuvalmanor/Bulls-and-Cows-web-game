@@ -30,9 +30,6 @@
     <ClCompile Include="serverFullThread.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\share\SocketSendRecvTools.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\share\WinsockFunc.c">
       <Filter>Shared Source Files</Filter>
     </ClCompile>
@@ -58,9 +55,6 @@
     </ClInclude>
     <ClInclude Include="serverFullThread.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\share\SocketSendRecvTools.h">
-      <Filter>Shared Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\share\WinsockFunc.h">
       <Filter>Shared Header Files</Filter>

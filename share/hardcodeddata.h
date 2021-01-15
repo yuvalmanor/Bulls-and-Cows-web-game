@@ -1,4 +1,6 @@
-
+/*
+Description - This module has the hard coded data for the entire solution - Shared h file.
+*/
 #ifndef HARDCODEDDATA_H
 #define HARDCODEDDATA_H
 

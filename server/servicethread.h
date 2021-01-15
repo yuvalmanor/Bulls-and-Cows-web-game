@@ -34,7 +34,7 @@ typedef struct ThreadParam {
 }ThreadParam;
 
 /*
-Description: In order to accept a client connection, this function will be called.
+Description: In order to accept a client connection, this function will be called by a new thread.
 			The function manages a single client's connection from the beginning to the end.
 Parameters: 
 	1. void* lpParam - The thread parameters

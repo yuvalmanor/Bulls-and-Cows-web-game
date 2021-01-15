@@ -1,10 +1,10 @@
 /*
-Authors –Oded Rinsky - 304973357, Yuval Manor -
+Authors –Oded Rinsky - 304973357, Yuval Manor - TODO
 Project – Client
 Description – The main c file of the client.
 */
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
-#include "clientManager.h"
+#include "ClientManager.h"
 
 int main(int argc, char* argv[]) {
 	int portNumber;

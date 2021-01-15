@@ -1,5 +1,9 @@
-#include "serverFullThread.h"
+/*
+Description - A module for the thread that is incharge of letting the client know it is 
+			denied. 
+*/
 
+#include "serverFullThread.h"
 
 DWORD ServerFullThread(ThreadParam* lpParam) {
 
@@ -45,7 +49,7 @@ DWORD ServerFullThread(ThreadParam* lpParam) {
 		return NOT_SUCCESS;
 	}
 	shutdownConnection(socket);
-	return SUCCESS;
+	return 0;
 
 
 }

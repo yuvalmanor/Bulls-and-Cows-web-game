@@ -12,7 +12,7 @@ int serverManager(int portNumber) {
 	SOCKADDR_IN service;
 	int bindRes, ListenRes, index, numOfPlayersInGame = 0, numOfPlayersSyncing = 0;;
 	HANDLE threadHandles[MAX_NUM_OF_PLAYERS+ NUM_OF_OVERHEAD_THREADS] = { NULL, NULL, NULL, NULL, NULL};
-	HANDLE lockEvent = NULL, syncEvent = NULL, FailureEvent = NULL;
+	HANDLE lockEvent = NULL, syncEvent = NULL, FailureEvent = NULL, h_file = NULL;
 	//<--------Initialize Winsock------->
 	if (-1 == InitializeWinsock()) { 
 		return NOT_SUCCESS;
@@ -47,6 +47,20 @@ int serverManager(int portNumber) {
 		return NOT_SUCCESS;
 	}
 
+	//Make sure there is no GameSessions.txt file- open the file and delete it immedieltly
+	h_file = openOrCreateFile(&index);
+	if (INVALID_HANDLE_VALUE == h_file) {
+		ServerManagerFreeResources(MainSocket, NULL, NULL, NULL);
+		return NOT_SUCCESS;
+	}
+	CloseHandle(h_file);
+	if (!DeleteFileA(sharedFile_name)) {
+		printf("DeleteFileA failed. Error code: %d\n", GetLastError());
+		ServerManagerFreeResources(MainSocket, NULL, NULL, NULL);
+		return NOT_SUCCESS;
+	}
+	index = 0;
+
 	//Create Failure thread and Exit Thread
 	if (NOT_SUCCESS == createFailureAndExitThreads(threadParams, threadHandles, &MainSocket)) {
 		ServerManagerFreeResources(MainSocket, lockEvent, syncEvent, FailureEvent);
@@ -66,7 +80,6 @@ int serverManager(int portNumber) {
 				continue;
 			}
 		}
-		printf("Client Connected.\n");
 
 		//Get the index of the first unused slot
 		index = FindFirstUnusedThreadSlot(threadHandles, threadParams); 

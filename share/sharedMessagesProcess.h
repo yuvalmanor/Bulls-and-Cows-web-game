@@ -1,4 +1,6 @@
-// shareMessagesProccess module - Take care of message processing. This is a shared module.
+/* 
+Description - Takes care of message processing. This is a shared module.
+ */
 #ifndef SHAREDMESSAGESPROCESS_H
 #define SHAREDMESSAGESPROCESS_H
 
@@ -6,7 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "hardcodeddata.h"
-#include "SocketSendRecvTools.h"
+#include "WinsockFunc.h"
 
 #define MSG_TYPE_LEN 28
 #define GUESS_LEN 5
@@ -24,9 +26,9 @@ typedef struct Message {
 	char bulls;
 	char cows;
 
-
-
 }Message;
+
+
 /*Description: A wraper function for recv function. Converting the recived message string to Message type.
 * Arguments:
 * 1. SOCKET socket
@@ -35,7 +37,7 @@ typedef struct Message {
 * returns: TRNS_SUCCEEDED/TRNS_FAILED/TRNS_TIMEOUT/TRNS_DISCONNECTED
 */
 int getMessage(SOCKET socket, Message** message, int waitTime);
-int sendMessage(SOCKET socket, char* rawMessage);
+
 /*Description: messageDecoder get a string and convert it to Message type variable.
 * Arguments:
 * 1. char* messageStr - Pointer to string whice conatins the message.
@@ -105,6 +107,7 @@ int initFourParams(char* restOfMessage, Message* message);
 * returns: Pointer to string which contain the message to be send.
 */
 char* prepareMsg(const char* msgType, char* str);
+
 /*Description: strToInt covert string number to integer type number.
 * Arguments:
 * 1. char* stringNum - Pointer to number represented by string
