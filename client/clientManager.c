@@ -89,6 +89,7 @@ int playGame(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* i
 					free(p_clientMsg);
 					return NOT_SUCCESS;
 				}
+				free(p_clientMsg);
 				shutdownConnection(c_socket);
 				return SUCCESS;
 			}
@@ -170,6 +171,7 @@ int playAgainst(SOCKET c_socket) {
 	if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return START_AGAIN;
 	else if (TRNS_FAILED == status) return NOT_SUCCESS;
 	if (!strcmp(p_serverMsg->type, "SERVER_INVITE")) {
+		free(p_serverMsg->username);
 		free(p_serverMsg);
 		return GameIsOn(c_socket);
 		

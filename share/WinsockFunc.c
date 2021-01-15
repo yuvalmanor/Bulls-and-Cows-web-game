@@ -4,6 +4,7 @@ Description - This module is incharge of socket operations and related functions
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include "WinsockFunc.h"
 
+
 int InitializeWinsock() {
 	WSADATA wsaData;
 	int StartupRes = WSAStartup(MAKEWORD(2, 2), &wsaData);

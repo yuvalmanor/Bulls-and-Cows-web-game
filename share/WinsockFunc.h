@@ -19,6 +19,7 @@ Description - This module is incharge of socket operations and related functions
 
 typedef enum { TRNS_FAILED, TRNS_SUCCEEDED, TRNS_DISCONNECTED, TRNS_TIMEOUT } TransferResult_t;
 
+
 /*
 Description: Wrapper function to make the serverManager more readable
 Returns: SUCCESS or NOT_SUCCESS
