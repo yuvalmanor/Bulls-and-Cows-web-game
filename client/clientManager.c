@@ -17,7 +17,7 @@ int clientManager(char* ip, int portNumber, char* username) {
 	{
 		//Free resources, WSACleanup and end program with -1
 		printf("Error at socket( ): %ld\n", WSAGetLastError());
-		resourcesManager(NULL, CLEAN);
+		resourcesManager(INVALID_SOCKET, CLEAN);
 		return NOT_SUCCESS;
 	}
 	//<------- Create a sockaddr_in object and set its values ----->
@@ -42,7 +42,7 @@ int clientManager(char* ip, int portNumber, char* username) {
 	
 	playGame(username, c_socket, clientService, ip, portNumber);
 
-	resourcesManager(NULL,CLEAN);
+	resourcesManager(INVALID_SOCKET,CLEAN);
 	return 1;
 }
 

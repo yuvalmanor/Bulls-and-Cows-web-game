@@ -81,10 +81,10 @@ int setup(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* ip, 
 			free(p_serverMsg);
 			return SUCCESS;
 		}
-		else if (!strcmp(p_serverMsg->type, "SERVER_DENIED")) { // TODO solve error 10038 thing
+		else if (!strcmp(p_serverMsg->type, "SERVER_DENIED")) { // TODO solve error 10038 thing - case of 3rd player
 			free(p_serverMsg->deniedReason);
 			free(p_serverMsg);
-			setsockopt(socket, SOL_SOCKET, SO_DONTLINGER, 0, 0);
+			setsockopt(c_socket, SOL_SOCKET, SO_DONTLINGER, 0, 0);
 			confirmShutdown(c_socket);
 			choice = menu(DENIED, ip, portNumber);
 			if (1 == choice) {
@@ -240,7 +240,6 @@ int playerChoice() {
 	else
 		return 2;
 }
-
 int checkTRNSCode(int TRNSCode, char* ip, int portNumber, SOCKET c_socket, SOCKADDR_IN clientService) {
 	int choice;
 	
@@ -333,24 +332,14 @@ char* chooseNumber() {
 	return guess;
 }
 int opponentQuit(char* message, Message* serverMsg, SOCKET c_socket) {
-	int status;
+	
 	if (!strcmp(message, "SERVER_OPPONENT_QUIT")) {
 		printf("Opponent quit.\n");
-		/*status = getMessage(c_socket, &serverMsg, RESPONSE_WAITTIME);
-		if (TRNS_DISCONNECTED == status || TRNS_TIMEOUT == status) return START_AGAIN;
-		else if (TRNS_FAILED == status) return NOT_SUCCESS;
-		if (strcmp(serverMsg->type, "SERVER_MAIN_MENU")) {
-			printf("Message invalid. This is the message recived: %s", serverMsg->type);
-			free(serverMsg);
-			return NOT_SUCCESS;*/
-		
-		//free(serverMsg);
 		return START_AGAIN;
 	}
 	else
-	{
 		return CONTINUE;
-	}
+	
 		
 }
 void gameResults(Message* message, gameStatus status) {
@@ -400,7 +389,7 @@ int makeConnection(SOCKET c_socket, SOCKADDR_IN clientService, char* ip, int por
 }
 void resourcesManager(SOCKET c_socket, int WSACleanFlag) {
 
-	if (NULL != c_socket) {
+	if (INVALID_SOCKET != c_socket) {
 		if (closesocket(c_socket) == SOCKET_ERROR)
 			printf("Failed to close clientSocket in resourcesManager. error %ld\n", WSAGetLastError());
 	}
