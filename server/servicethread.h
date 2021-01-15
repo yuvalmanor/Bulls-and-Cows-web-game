@@ -16,7 +16,6 @@ Description – An implementation of the thread that gives service to the clients
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "SocketSendRecvTools.h"
 #include "sharedMessagesProcess.h"
 #include "hardcodeddata.h"
 #include "WinsockFunc.h"

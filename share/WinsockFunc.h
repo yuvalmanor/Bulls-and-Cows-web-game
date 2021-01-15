@@ -13,6 +13,7 @@ Description - This module is incharge of socket operations and related functions
 #include <ws2tcpip.h>
 #pragma comment(lib, "Ws2_32.lib")
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "hardcodeddata.h"
 
@@ -66,7 +67,7 @@ TransferResult_t SendBuffer(const char* Buffer, int BytesToSend, SOCKET sd);
  * Arguments:
  *		1. const char* Str - the string to send.
  *		2. SOCKET sd - the socket used for communication.
- * Returns: TransferResult_t
+ * Returns: TransferResult_t response
  */
 TransferResult_t SendString(const char* Str, SOCKET sd);
 

@@ -15,7 +15,6 @@ Description – A module that enables communication and syncronization between dif
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "SocketSendRecvTools.h"
 #include "sharedMessagesProcess.h"
 #include "hardcodeddata.h"
 
