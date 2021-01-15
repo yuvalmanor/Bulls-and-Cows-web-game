@@ -1,4 +1,9 @@
-#include "main_server.h"
+/*
+Authors –Oded Rinsky - 304973357, Yuval Manor - 
+Project – Server
+Description – The main c file of the server.
+*/
+#include "main.h"
 
 int main(int argc, char* argv[]) {
 	if (argc != 2) {

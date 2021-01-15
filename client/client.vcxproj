@@ -145,7 +145,7 @@
     <ClCompile Include="..\share\WinsockFunc.c" />
     <ClCompile Include="GameManager.c" />
     <ClCompile Include="clientManager.c" />
-    <ClCompile Include="main_client.c" />
+    <ClCompile Include="main.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\share\hardcodeddata.h" />

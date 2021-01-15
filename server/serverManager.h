@@ -1,3 +1,8 @@
+/*
+Description – The module that is incharge of creating the Main socket, choosing whether to accept or deny
+		the clients, Creating the threads that handle each client and the threads that poll for "exit" or failure
+*/
+
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif

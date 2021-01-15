@@ -1,7 +1,10 @@
+/*
+Authors –Oded Rinsky - 304973357, Yuval Manor -
+Project – Client
+Description – The main c file of the client.
+*/
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include "clientManager.h"
-
-
 
 int main(int argc, char* argv[]) {
 	int portNumber;

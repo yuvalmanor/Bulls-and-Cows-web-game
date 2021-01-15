@@ -39,7 +39,10 @@
     <ClCompile Include="serverManager.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="main_server.c">
+    <ClCompile Include="main.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ThreadsCommunication.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -65,7 +68,10 @@
     <ClInclude Include="serverManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="main_server.h">
+    <ClInclude Include="main.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ThreadsCommunication.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,3 +1,6 @@
+/*
+Description – A module that manages the game from the client's side
+*/
 #include "GameManager.h"
 
 int playGame(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* ip, int portNumber) {

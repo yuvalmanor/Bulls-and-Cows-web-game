@@ -144,20 +144,22 @@
     <ClCompile Include="..\share\sharedMessagesProcess.c" />
     <ClCompile Include="..\share\SocketSendRecvTools.c" />
     <ClCompile Include="..\share\WinsockFunc.c" />
-    <ClCompile Include="main_server.c" />
+    <ClCompile Include="main.c" />
     <ClCompile Include="serverFullThread.c" />
     <ClCompile Include="serverManager.c" />
     <ClCompile Include="servicethread.c" />
+    <ClCompile Include="ThreadsCommunication.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\share\hardcodeddata.h" />
     <ClInclude Include="..\share\sharedMessagesProcess.h" />
     <ClInclude Include="..\share\SocketSendRecvTools.h" />
     <ClInclude Include="..\share\WinsockFunc.h" />
-    <ClInclude Include="main_server.h" />
+    <ClInclude Include="main.h" />
     <ClInclude Include="serverFullThread.h" />
     <ClInclude Include="serverManager.h" />
     <ClInclude Include="servicethread.h" />
+    <ClInclude Include="ThreadsCommunication.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

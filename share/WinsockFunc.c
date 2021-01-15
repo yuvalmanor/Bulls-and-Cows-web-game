@@ -1,3 +1,4 @@
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include "WinsockFunc.h"
 
 int InitializeWinsock() {
@@ -41,16 +42,8 @@ void confirmShutdown(SOCKET socket) {
 	if (closesocket(socket))
 		printf("closesocket error (confirmShutdown), error %ld.\n", WSAGetLastError());
 }
-/*int createSocket() {
-	c_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (c_socket == INVALID_SOCKET)
-	{
-		printf("Error at socket( ): %ld\n", WSAGetLastError());
-		return NOT_SUCCESS;
-	}
-}*/
-/*SOCKADDR_IN initAddress(char* ip, int portNumber) {
-	SOCKADDR_IN service;
+
+int initAddress(char* ip, int portNumber, SOCKADDR_IN* service) {
 	unsigned long Address;
 
 	Address = inet_addr(ip); 
@@ -58,12 +51,12 @@ void confirmShutdown(SOCKET socket) {
 	{
 		printf("The string \"%s\" cannot be converted into an ip address. ending program.\n",
 			ip);
-		return NULL;
+		return NOT_SUCCESS;
 	}
-	service.sin_family = AF_INET;
-	service.sin_addr.s_addr = Address;
-	service.sin_port = htons(portNumber);
+	(*service).sin_family = AF_INET;
+	(*service).sin_addr.s_addr = Address;
+	(*service).sin_port = htons(portNumber);
 
-	return service;
+	return SUCCESS;
 
-}*/
+}

@@ -1,9 +1,12 @@
-#define _WINSOCK_DEPRECATED_NO_WARNINGS
+/*
+Description – The module that is incharge of creating the Main socket, choosing whether to accept or deny 
+		the clients, Creating the threads that handle each client and the threads that poll for "exit" or failure 
+*/
+
 #include "serverManager.h"
 
 int serverManager(int portNumber) {
 	SOCKET MainSocket = INVALID_SOCKET;
-	//TODO - who will free the parameters?
 	ThreadParam* threadParams[MAX_NUM_OF_PLAYERS+ NUM_OF_OVERHEAD_THREADS] = { NULL, NULL, NULL, NULL, NULL};
 	unsigned long Address;
 	SOCKADDR_IN service;
@@ -16,53 +19,34 @@ int serverManager(int portNumber) {
 	}
 	// <-----Create a socket----->   
 	MainSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (MainSocket == INVALID_SOCKET)
-	{
+	if (MainSocket == INVALID_SOCKET) {
 		//Free resources, WSACleanup and end program with -1
 		printf("Error at socket( ): %ld\n", WSAGetLastError());
 		ServerManagerFreeResources(NULL, NULL, NULL, NULL); 
 		return NOT_SUCCESS;
 	}
-
 	//<------- Create a sockaddr_in object and set its values ----->
-	Address = inet_addr(LOCALHOST); 
-	if (Address == INADDR_NONE)
-	{
-		printf("The string \"%s\" cannot be converted into an ip address. ending program.\n",
-			LOCALHOST);
+	if (SUCCESS != initAddress(LOCALHOST, portNumber, &service)) {
+		printf("Error at socket( ): %ld\n", WSAGetLastError());
 		ServerManagerFreeResources(MainSocket, NULL, NULL, NULL);
 		return NOT_SUCCESS;
 	}
-	service.sin_family = AF_INET;
-	service.sin_addr.s_addr = Address;
-	service.sin_port = htons(portNumber);
-
 	//<------- Bind ------->
-	// Call the bind function, passing the created socket and the sockaddr_in structure as parameters. 
-	// Check for general errors.
 	bindRes = bind(MainSocket, (SOCKADDR*)&service, sizeof(service));
-	if (bindRes == SOCKET_ERROR)
-	{
+	if (bindRes == SOCKET_ERROR) {
 		printf("bind( ) failed with error %ld. Ending program\n", WSAGetLastError());
 		ServerManagerFreeResources(MainSocket, NULL, NULL, NULL);
 		return NOT_SUCCESS;
 	}
-
 	// <-------Listen on the Socket------->
 	ListenRes = listen(MainSocket, SOMAXCONN);
-	if (ListenRes == SOCKET_ERROR)
-	{		
+	if (ListenRes == SOCKET_ERROR) {		
 		//Free resources: close socket, free address struct(?), WASCleanup, return -1
 		printf("Failed listening on socket, error %ld.\n", WSAGetLastError());
 		ServerManagerFreeResources(MainSocket, NULL, NULL, NULL); 
 		return NOT_SUCCESS;
 	}
 
-	//Create syncronization mechanisms
-	if (NOT_SUCCESS == getEvents(&lockEvent, &syncEvent, &FailureEvent)) {
-		ServerManagerFreeResources(MainSocket, NULL, NULL, NULL);
-		return NOT_SUCCESS;
-	}
 	//Create Failure thread and Exit Thread
 	if (NOT_SUCCESS == createFailureAndExitThreads(threadParams, threadHandles, &MainSocket)) {
 		ServerManagerFreeResources(MainSocket, lockEvent, syncEvent, FailureEvent);
@@ -72,7 +56,7 @@ int serverManager(int portNumber) {
 	//<------ Wait for clients to connect ------>
 	while (1) {
 		SOCKET AcceptSocket = accept(MainSocket, NULL, NULL);
-		if (AcceptSocket == INVALID_SOCKET)
+		if (AcceptSocket == INVALID_SOCKET) 
 		{	
 			if (WSAEINTR == GetLastError()) {//The MainSocket was closed by FailureThread or exitThread
 				break; //Free resources and shut down program
@@ -124,8 +108,7 @@ ThreadParam* initThreadParam(SOCKET socket, int* numOfPlayersInGame, int* numOfP
 	return p_threadparams;
 }
 
-//TODO make sure this is doing the right things
-int ServerManagerFreeResources(SOCKET MainSocket, HANDLE lockEvent, HANDLE syncEvent, HANDLE FailureEvent) { //Add all events and close handles
+int ServerManagerFreeResources(SOCKET MainSocket, HANDLE lockEvent, HANDLE syncEvent, HANDLE FailureEvent) {
 	if (NULL != MainSocket) {
 		if (closesocket(MainSocket) == SOCKET_ERROR)
 			printf("Failed to close MainSocket in ServerMainFreeResources(). error %ld\n", WSAGetLastError());
@@ -201,7 +184,7 @@ void FailureThread(ThreadParam* lpParam) {
 	HANDLE lockEvent = NULL, syncEvent = NULL, FailureEvent = NULL;
 	DWORD waitcode;
 	//<-----Open FailureEvent handle------>
-	if (1 != getEvents(&lockEvent, &syncEvent, &FailureEvent)) { 
+	if (SUCCESS != getEvents(&lockEvent, &syncEvent, &FailureEvent)) { 
 		printf("error. can't getEvents (FailureThread)\n");
 		if (closesocket(*p_socket) == SOCKET_ERROR)
 			printf("Failed to close MainSocket in FailureThread. error %ld\n", WSAGetLastError());
