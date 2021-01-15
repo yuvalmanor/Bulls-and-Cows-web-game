@@ -14,7 +14,7 @@ DWORD ServerFullThread(ThreadParam* lpParam) {
 	//get thread parameters
 	if (NULL == lpParam) {
 		printf("Service thread can't work with NULL as parameters\n");
-		return NOT_SUCCESS; //who close the socket in such case?
+		return NOT_SUCCESS; 
 	}
 	p_param = (ThreadParam*)lpParam;
 	SOCKET socket = p_param->socket;

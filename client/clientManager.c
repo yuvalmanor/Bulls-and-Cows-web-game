@@ -57,9 +57,9 @@ int playGame(char* username, SOCKET c_socket, SOCKADDR_IN clientService, char* i
 		status = setup(username, &c_socket, clientService, ip, portNumber);
 		if (status ==NOT_SUCCESS ) return NOT_SUCCESS;
 		else if (status == EXIT) return SUCCESS;
-		while (1) { //I changed the case of START_AGAIN to continue, is this ok?
+		while (1) { 
 			status = getMessage(c_socket, &p_serverMsg, RESPONSE_WAITTIME);
-			if (TRNS_SUCCEEDED != status) { //Yuval checked it. comment still here to flag the place
+			if (TRNS_SUCCEEDED != status) { 
 				if (SUCCESS != checkTRNSCode(status, ip, portNumber, c_socket, clientService))
 					return NOT_SUCCESS;
 				else
@@ -129,8 +129,9 @@ int setup(char* username, SOCKET* p_c_socket, SOCKADDR_IN clientService, char* i
 			free(p_serverMsg);
 			return SUCCESS;
 		}
-		else if (!strcmp(p_serverMsg->type, "SERVER_DENIED")) { // TODO solve error 10038 thing - case of 3rd player
-			free(p_serverMsg->deniedReason);
+		else if (!strcmp(p_serverMsg->type, "SERVER_DENIED")) {
+			if (p_serverMsg->deniedReason != NULL)
+				free(p_serverMsg->deniedReason);
 			free(p_serverMsg);
 			setsockopt(*p_c_socket, SOL_SOCKET, SO_DONTLINGER, 0, 0);
 			confirmShutdown(*p_c_socket);

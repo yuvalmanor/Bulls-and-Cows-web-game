@@ -86,4 +86,16 @@ Parameters -
 Returns - SUCCESS or NOT_SUCCESS
 	*/
 int clearThreadsAndParameters(HANDLE* threadHandles, ThreadParam** threadParams);
+
+/*
+Description - Create the Exit Thread and the Failure Thread. These threads are incharge of making the manager quit
+			in case of a critical failure
+If Threads are running, Terminate them.
+Parameters -
+	* HANDLE* threadHandles - arr of thread Handles
+	* ThreadParam** threadParams - arr of pointers to Thread parameters
+Returns - SUCCESS or NOT_SUCCESS
+	*/
+int createFailureAndExitThreads(ThreadParam** threadParams, HANDLE* threadHandles, SOCKET* p_socket);
+
 #endif // !SERVERMAIN_H

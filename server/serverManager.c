@@ -8,7 +8,6 @@ Description – The module that is incharge of creating the Main socket, choosing 
 int serverManager(int portNumber) {
 	SOCKET MainSocket = INVALID_SOCKET;
 	ThreadParam* threadParams[MAX_NUM_OF_PLAYERS+ NUM_OF_OVERHEAD_THREADS] = { NULL, NULL, NULL, NULL, NULL};
-	unsigned long Address;
 	SOCKADDR_IN service;
 	int bindRes, ListenRes, index, numOfPlayersInGame = 0, numOfPlayersSyncing = 0;;
 	HANDLE threadHandles[MAX_NUM_OF_PLAYERS+ NUM_OF_OVERHEAD_THREADS] = { NULL, NULL, NULL, NULL, NULL};
@@ -41,12 +40,10 @@ int serverManager(int portNumber) {
 	// <-------Listen on the Socket------->
 	ListenRes = listen(MainSocket, SOMAXCONN);
 	if (ListenRes == SOCKET_ERROR) {		
-		//Free resources: close socket, free address struct(?), WASCleanup, return -1
 		printf("Failed listening on socket, error %ld.\n", WSAGetLastError());
 		ServerManagerFreeResources(MainSocket, NULL, NULL, NULL); 
 		return NOT_SUCCESS;
 	}
-
 	//Make sure there is no GameSessions.txt file- open the file and delete it immedieltly
 	h_file = openOrCreateFile(&index);
 	if (INVALID_HANDLE_VALUE == h_file) {
@@ -100,7 +97,6 @@ int serverManager(int portNumber) {
 				NULL, 0, (LPTHREAD_START_ROUTINE)ServiceThread, threadParams[index], 0, NULL);
 		}
 	} //!while(1)
-
 	clearThreadsAndParameters(threadHandles, threadParams);
 	ServerManagerFreeResources(INVALID_SOCKET, lockEvent, syncEvent, FailureEvent);
 	printf("ServerManager is quitting\n");
@@ -170,11 +166,11 @@ int FindFirstUnusedThreadSlot(HANDLE* threadHandles, ThreadParam** threadParams)
 }
 
 int createFailureAndExitThreads(ThreadParam** threadParams, HANDLE* threadHandles, SOCKET* p_socket) {
-	threadParams[FAILURE_THREAD_INDEX] = initThreadParam(NULL, NULL, NULL, p_socket);
+	threadParams[FAILURE_THREAD_INDEX] = initThreadParam(INVALID_SOCKET, NULL, NULL, p_socket);
 	if (threadParams[FAILURE_THREAD_INDEX] == NULL) {
 		return NOT_SUCCESS;
 	}
-	threadParams[EXIT_THREAD_INDEX] = initThreadParam(NULL, NULL, NULL, p_socket);
+	threadParams[EXIT_THREAD_INDEX] = initThreadParam(INVALID_SOCKET, NULL, NULL, p_socket);
 	if (threadParams[EXIT_THREAD_INDEX] == NULL) {
 		free(threadParams[FAILURE_THREAD_INDEX]);
 		threadParams[FAILURE_THREAD_INDEX] = NULL;
@@ -190,7 +186,7 @@ void FailureThread(ThreadParam* lpParam) {
 	ThreadParam* p_param;
 	if (NULL == lpParam) {
 		printf("Service thread can't work with NULL as parameters\n");
-		return NOT_SUCCESS; 
+		return; 
 	}
 	p_param = (ThreadParam*)lpParam;
 	SOCKET* p_socket = p_param->p_socket;
@@ -218,7 +214,7 @@ void exitThread(ThreadParam* lpParam) {
 	ThreadParam* p_param;
 	if (NULL == lpParam) {
 		printf("exit thread can't work with NULL as parameters\n");
-		return NOT_SUCCESS;
+		return;
 	}
 	p_param = (ThreadParam*)lpParam;
 	SOCKET* p_socket = p_param->p_socket;
@@ -245,7 +241,7 @@ int clearThreadsAndParameters(HANDLE* threadHandles, ThreadParam** threadParams)
 					if (closesocket(threadParams[i]->socket) == SOCKET_ERROR)
 						printf("Failed to close MainSocket in ServerMainFreeResources(). error %ld\n", WSAGetLastError());
 				}
-				TerminateThread(threadHandles[i] != NULL, -1);
+				TerminateThread(threadHandles[i], -1); //This warning is inevitable when using TerminateThread()
 			}
 			CloseHandle(threadHandles[i]);
 		}

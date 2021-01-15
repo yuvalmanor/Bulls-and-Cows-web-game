@@ -80,7 +80,7 @@ Parameters:
 	7. char** p_opponentUsername - a pointer to the opponent user name
 Returns: NOT_SUCCESS, DISCONNECT or SUCCESS
 */
-int ExchangeClientsNames(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_numOfPlayersInGame, int* p_playerOne, char** p_username, char** p_opponentUsername);
+int ExchangeClientsNames(SOCKET socket, HANDLE lockEvent, HANDLE syncEvent, int* p_numOfPlayersInGame, int* p_playerOne, char* username, char** p_opponentUsername);
 
 /*
 Description: Free resources before thread finishes
@@ -101,18 +101,33 @@ Description: startGame is incharge of managing the game right after the two play
 Arguments:
 	1. SOCKET socket
 	2. HANDLE h_sharedFile - Handle to the threads communication file.
-	3. HANDLE lockEvent - TODO
-	4. HANDLE syncEvent - TODO
+	3. HANDLE lockEvent - an event to protect shared resources - Auto reset and signaled
+	4. HANDLE syncEvent - an event to sync the two threads - Maual reset and non-signaled
 	5. int playerOne - Integer that flags to the thread if it is incharge of first player or second.
 	6. int* p_numOfPlayersInGame - Pointer to an integer that counts the number of clients are connected to the server.
 	7. char* username - The player username that recived from the player.
-	8. char* opponentName - The opponent name that recived from the shared file.
-	9. int* p_numOfPlayersSyncing - Flag that used for syncing the two threads.
-returns: NOT_SUCCESS or MAIN_MENU or DISCONNECTED
+	8. char* opponentName - The opponent name that was recived from the shared file.
+	9. int* p_numOfPlayersSyncing - The number of players syncing at the moment
+returns: NOT_SUCCESS, MAIN_MENU or DISCONNECTED
 */
 int startGame(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncEvent, int playerOne, int* p_players, char* username, char* opponentName, int* p_playersCount);
 
-//TODO - add Documentation
+/*
+Description: secretNumInit gets the secret number from the user, writes it to the file,
+			syncs the two clients and reads the opponent's number from the file
+Arguments:
+	1. SOCKET socket
+	2. HANDLE h_sharedFile - Handle to the threads communication file.
+	3. HANDLE lockEvent - an event to protect shared resources - Auto reset and signaled
+	4. HANDLE syncEvent - an event to sync the two threads - Maual reset and non-signaled
+	5. int playerOne - Integer that flags to the thread if it is incharge of first player or second.
+	6. int* p_numOfPlayersInGame - Pointer to an integer that counts the number of clients are connected to the server.
+	8. char* opponentName - The opponent name that recived from the shared file.
+	9. int* p_numOfPlayersSyncing - The number of players syncing at the moment.
+	7. char** p_userNum -  A pointer to a buffer where the player's num will be written 
+	8. char** p_opponentNum - A pointer to a buffer where the opponent num will be written 
+returns: NOT_SUCCESS, SUCCESS or DISCONNECTED
+*/
 int secretNumInit(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncEvent, int playerOne,
 	int* p_numOfPlayersInGame, char* opponentName, int* p_numOfPlayersSyncing, char** p_userNum, char** p_opponentNum);
 

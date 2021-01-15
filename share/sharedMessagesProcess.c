@@ -79,7 +79,6 @@ Message* messageDecoder(char* messageStr){
 	else
 		numOfParams = 1;
 	setMessageParams(p_restOfMessage, numOfParams, msgTypeInt, message);
-	//free p_restOfMessage?
 	free(p_messageCpy);
 	return message;
 }
@@ -129,13 +128,7 @@ Message* initMessage(char* messageType) {
 
 	return message;
 }
-int getParamsNum(int type) {
-	
-	if (type == SERVER_WIN) return 2;
-	else if (type == SERVER_GAME_RESULTS) return 4;
-	else
-		return 1;
-}
+
 int getMessageType(char* messageType) {
 	const char* messageTypeArr[MSG_NUM] = { "CLIENT_REQUEST", "CLIENT_SETUP", "CLIENT_PLAYER_MOVE","SERVER_DENIED","SERVER_INVITE", "SERVER_GAME_RESULTS", "SERVER_WIN" };
 	int type = -1, i=0;

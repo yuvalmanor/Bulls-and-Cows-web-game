@@ -107,7 +107,7 @@ int writeToFile(HANDLE h_file, int offset, char* data, int playerOne, int writeU
 }
 
 int readFromFile(HANDLE h_sharedFile, int offset, char** data, int playerOne, int readUsername) {
-	DWORD dwBytesWritten, filePointer, dwBytesRead;
+	DWORD filePointer, dwBytesRead;
 	int numOfBytesToRead = SECRETNUMBER_LEN + 2;
 	char* buffer = NULL;
 	if (readUsername) {

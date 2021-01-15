@@ -73,8 +73,7 @@ int getMessageType(char* messageType);
 * returns: Integer (enum) that represent the fields should be fill.
 */
 int getField(int msgType);
-//getParamsNum is not used anymore. Before the hagashe, delete it.
-int getParamsNum(int type);
+
 /*Description: initOneParam initialize the required parameter by its message type. This function made for all
 * the message types have one parameter.
 * Arguments:
@@ -84,6 +83,7 @@ int getParamsNum(int type);
 * returns: SUCCESS or NOT_SUCCESS
 */
 int initOneParam(char* restOfMessage, int msgType, Message* message);
+
 /*Description: initTwoParams initialize the required parameters by its message type. This function made for all
 * the message type have two parameter.
 * Arguments:
@@ -111,7 +111,7 @@ char* prepareMsg(const char* msgType, char* str);
 /*Description: strToInt covert string number to integer type number.
 * Arguments:
 * 1. char* stringNum - Pointer to number represented by string
-* returns: Integer type number
+* returns: Int type number
 */
 int strToInt(char* stringNum);
 #endif // SHAREDMESSAGESPROCESS_H

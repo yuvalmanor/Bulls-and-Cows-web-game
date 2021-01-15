@@ -18,10 +18,9 @@ Description – A module that enables communication and syncronization between dif
 #include "sharedMessagesProcess.h"
 #include "hardcodeddata.h"
 
-typedef const char* LPCSTR;
-static LPCSTR lockEvent_name = "lockEvent";
-static LPCSTR syncEvent_name = "syncEvent";
-static LPCSTR failureEvent_name = "Failure";
+static LPCWSTR lockEvent_name = L"lockEvent";
+static LPCWSTR syncEvent_name = L"syncEvent";
+static LPCWSTR failureEvent_name = L"Failure";
 static LPCSTR sharedFile_name = "GameSession.txt";
 
 /*
@@ -73,8 +72,8 @@ Parameters:
 	1. SOCKET socket - the socket to close or NULL if no need to close the socket
 	2. int* p_numOfPlayersSyncing - a pointer to an int indicating how many players user this function in the current sync
 	3. int* p_numOfPlayersInGame -a pointer to an int indicating how many players are in the game
-	4. HANDLE lockEvent - an Event handle (auto reset and signaled)
-	5. HANDLE syncEvent  - an Event handle (manual reset and non-signaled)
+	4. HANDLE lockEvent - an event to protect shared resources - Auto reset and signaled
+	5. HANDLE syncEvent - an event to sync the two threads - Maual reset and non-signaled
 Returns: MAIN_MENU if other client disconnected, NOT_SUCCESS if an error occured or GAME_STILL_ON
 */
 int SyncTwoThreads(SOCKET socket, int* p_numOfPlayersSyncing, int* p_numOfPlayersInGame, HANDLE lockEvent, HANDLE syncEvent);
@@ -85,7 +84,7 @@ Description: opponentLeftGame checks if the opponent left the game, if he is, se
 Arguments:
 	1. SOCKET socket
 	2. int* p_players - Pointer to an integer that counts the number of clients are connected to the server.
-	3. HANDLE lockEvent - TODO
+	3. HANDLE lockEvent - an event to protect shared resources - Auto reset and signaled
 returns: NOT_SUCCESS or MAIN_MENU
 */
 int opponentLeftGame(SOCKET socket, int* p_players, HANDLE lockEvent);

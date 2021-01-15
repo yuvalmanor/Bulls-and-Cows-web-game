@@ -68,47 +68,35 @@ TransferResult_t SendBuffer(const char* Buffer, int BytesToSend, SOCKET sd);
  * Arguments:
  *		1. const char* Str - the string to send.
  *		2. SOCKET sd - the socket used for communication.
- * Returns: TransferResult_t response
+ * Returns: TRNS_FAILED, TRNS_SUCCEEDED, TRNS_DISCONNECTED or TRNS_TIMEOUT
  */
 TransferResult_t SendString(const char* Str, SOCKET sd);
 
-/**
- * Accepts:
- * -------
- * ReceiveBuffer() uses a socket to receive a buffer.
- * OutputBuffer - pointer to a buffer into which data will be written
- * OutputBufferSize - size in bytes of Output Buffer
- * BytesReceivedPtr - output parameter. if function returns TRNS_SUCCEEDED, then this
- *					  will point at an int containing the number of bytes received.
- * sd - the socket used for communication.
- *
- * Returns:
- * -------
- * TRNS_SUCCEEDED - if receiving succeeded
- * TRNS_DISCONNECTED - if the socket was disconnected
- * TRNS_FAILED - otherwise
+/*
+ * Description - ReceiveBuffer() uses a socket to receive a buffer.
+ * Arguments:
+ *		1. char* OutputBuffer - pointer to a buffer into which data will be written
+ *		2. int RemainingBytesToReceive- size in bytes of Output Buffer
+ *		3. SOCKET sd - the socket used for communication.
+ *		4. int timeOut - The wait time for receiving the buffer
+ * Returns:  
+		TRNS_SUCCEEDED - if receiving succeeded
+ 		TRNS_DISCONNECTED - if the socket was disconnected
+ 		TRNS_FAILED - otherwise
  */
 TransferResult_t ReceiveBuffer(char* OutputBuffer, int RemainingBytesToReceive, SOCKET sd, int timeOut);
 
 /**
- * ReceiveString() uses a socket to receive a string, and stores it in dynamic memory.
- *
- * Accepts:
- * -------
- * OutputStrPtr - a pointer to a char-pointer that is initialized to NULL, as in:
- *
- *		char *Buffer = NULL;
- *		ReceiveString( &Buffer, ___ );
- *
- * a dynamically allocated string will be created, and (*OutputStrPtr) will point to it.
- *
- * sd - the socket used for communication.
+ * Description - ReceiveString() uses a socket to receive a string, and stores it in dynamic memory.
+ * Arguments:
+ *		1. char** OutputStrPtr - a pointer to a char-pointer that is initialized to NULL
+ *		2. SOCKET sd - the socket used for communication.
+ *		3. int timeOut - The wait time for sending the buffer
  *
  * Returns:
- * -------
- * TRNS_SUCCEEDED - if receiving and memory allocation succeeded
- * TRNS_DISCONNECTED - if the socket was disconnected
- * TRNS_FAILED - otherwise
+ *		TRNS_SUCCEEDED - if receiving and memory allocation succeeded
+ *		TRNS_DISCONNECTED - if the socket was disconnected
+ *		TRNS_FAILED - otherwise
  */
 TransferResult_t ReceiveString(char** OutputStrPtr, SOCKET sd, int timeOut);
 
