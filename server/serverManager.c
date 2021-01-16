@@ -11,7 +11,7 @@ int serverManager(int portNumber) {
 	SOCKADDR_IN service;
 	int bindRes, ListenRes, index, numOfPlayersInGame = 0, numOfPlayersSyncing = 0;;
 	HANDLE threadHandles[MAX_NUM_OF_PLAYERS+ NUM_OF_OVERHEAD_THREADS] = { NULL, NULL, NULL, NULL, NULL};
-	HANDLE lockEvent = NULL, syncEvent = NULL, FailureEvent = NULL, h_file = NULL;
+	HANDLE h_file = NULL;
 	//<--------Initialize Winsock------->
 	if (-1 == InitializeWinsock()) { 
 		return NOT_SUCCESS;
@@ -60,7 +60,7 @@ int serverManager(int portNumber) {
 
 	//Create Failure thread and Exit Thread
 	if (NOT_SUCCESS == createFailureAndExitThreads(threadParams, threadHandles, &MainSocket)) {
-		ServerManagerFreeResources(MainSocket, lockEvent, syncEvent, FailureEvent);
+		ServerManagerFreeResources(MainSocket, NULL, NULL, NULL);
 		return NOT_SUCCESS;
 	}
 
@@ -97,8 +97,8 @@ int serverManager(int portNumber) {
 				NULL, 0, (LPTHREAD_START_ROUTINE)ServiceThread, threadParams[index], 0, NULL);
 		}
 	} //!while(1)
-	clearThreadsAndParameters(threadHandles, threadParams, FailureEvent);
-	ServerManagerFreeResources(INVALID_SOCKET, lockEvent, syncEvent, FailureEvent);
+	clearThreadsAndParameters(threadHandles, threadParams);
+	ServerManagerFreeResources(INVALID_SOCKET, NULL, NULL, NULL);
 	printf("ServerManager is quitting\n");
 	return 0;
 
@@ -203,11 +203,13 @@ void FailureThread(ThreadParam* lpParam) {
 	waitcode = WaitForSingleObject(FailureEvent, INFINITE); //Wait for failure event to be set
 	if (waitcode != WAIT_OBJECT_0) { //If FailureEvent was not set, don't close the main socket
 		printf("FailureThread finishing without failureEvent being set\n");
+		ServerManagerFreeResources(INVALID_SOCKET, lockEvent, syncEvent, FailureEvent);
 		return;
 	}
 	//If failureEvent was set, close the main socket
 	if (closesocket(*p_socket) == SOCKET_ERROR)
 		printf("Failed to close MainSocket in FailureThread. error %ld\n", WSAGetLastError());
+	ServerManagerFreeResources(INVALID_SOCKET, lockEvent, syncEvent, FailureEvent);
 }
 
 void exitThread(ThreadParam* lpParam) {
@@ -231,15 +233,21 @@ void exitThread(ThreadParam* lpParam) {
 	}
 }
 
-int clearThreadsAndParameters(HANDLE* threadHandles, ThreadParam** threadParams, HANDLE failureEvent) {
+int clearThreadsAndParameters(HANDLE* threadHandles, ThreadParam** threadParams) {
 	DWORD waitCode;
 	int waitTime = 1;
-	waitCode = WaitForSingleObject(failureEvent, waitTime);
+	HANDLE lockEvent = NULL, syncEvent = NULL, FailureEvent = NULL;
+	//<-----Open FailureEvent handle------>
+	if (SUCCESS != getEvents(&lockEvent, &syncEvent, &FailureEvent)) {
+		printf("error. can't getEvents (clearThreadsAndParameters)\n");
+	}
+	waitCode = WaitForSingleObject(FailureEvent, 1);
 	if (WAIT_TIMEOUT == waitCode) //There was no failure event.
 		waitTime = RESPONSE_WAITTIME;
 	else if (WAIT_OBJECT_0 != waitCode)
 		printf("Problem with failureEvent.\n");
 	for (int i = 0; i < MAX_NUM_OF_PLAYERS+ NUM_OF_OVERHEAD_THREADS; i++) {
+		if (i > MAX_NUM_OF_PLAYERS) waitTime = 1; //the exitThread and FailureThread should be terminated immediately
 		if (threadHandles[i] != NULL) {
 			waitCode = WaitForSingleObject(threadHandles[i], waitTime);
 			if (waitCode != WAIT_OBJECT_0) { //If thread is active, free its parameters and terminate it
