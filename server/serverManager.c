@@ -1,5 +1,5 @@
 /*
-Description – The module that is incharge of creating the Main socket, choosing whether to accept or deny 
+Description â€“ The module that is incharge of creating the Main socket, choosing whether to accept or deny 
 		the clients, Creating the threads that handle each client and the threads that poll for "exit" or failure 
 */
 
@@ -264,6 +264,6 @@ int clearThreadsAndParameters(HANDLE* threadHandles, ThreadParam** threadParams)
 			threadParams[i] = NULL;
 		}
 	}
-	
+	ServerManagerFreeResources(INVALID_SOCKET, lockEvent, syncEvent, FailureEvent);
 	return SUCCESS;
 }
