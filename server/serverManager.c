@@ -97,7 +97,7 @@ int serverManager(int portNumber) {
 				NULL, 0, (LPTHREAD_START_ROUTINE)ServiceThread, threadParams[index], 0, NULL);
 		}
 	} //!while(1)
-	clearThreadsAndParameters(threadHandles, threadParams);
+	clearThreadsAndParameters(threadHandles, threadParams, FailureEvent);
 	ServerManagerFreeResources(INVALID_SOCKET, lockEvent, syncEvent, FailureEvent);
 	printf("ServerManager is quitting\n");
 	return 0;
@@ -231,12 +231,18 @@ void exitThread(ThreadParam* lpParam) {
 	}
 }
 
-int clearThreadsAndParameters(HANDLE* threadHandles, ThreadParam** threadParams) {
-	DWORD waitcode;
+int clearThreadsAndParameters(HANDLE* threadHandles, ThreadParam** threadParams, HANDLE failureEvent) {
+	DWORD waitCode;
+	int waitTime = 1;
+	waitCode = WaitForSingleObject(failureEvent, waitTime);
+	if (WAIT_TIMEOUT == waitCode) //There was no failure event.
+		waitTime = RESPONSE_WAITTIME;
+	else if (WAIT_OBJECT_0 != waitCode)
+		printf("Problem with failureEvent.\n");
 	for (int i = 0; i < MAX_NUM_OF_PLAYERS+ NUM_OF_OVERHEAD_THREADS; i++) {
 		if (threadHandles[i] != NULL) {
-			waitcode = WaitForSingleObject(threadHandles[i], 1);
-			if (waitcode != WAIT_OBJECT_0) { //If thread is active, free its parameters and terminate it
+			waitCode = WaitForSingleObject(threadHandles[i], waitTime);
+			if (waitCode != WAIT_OBJECT_0) { //If thread is active, free its parameters and terminate it
 				if (i <= MAX_NUM_OF_PLAYERS) {
 					if (closesocket(threadParams[i]->socket) == SOCKET_ERROR)
 						printf("Failed to close MainSocket in ServerMainFreeResources(). error %ld\n", WSAGetLastError());

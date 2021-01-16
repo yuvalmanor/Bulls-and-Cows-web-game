@@ -83,9 +83,10 @@ If Threads are running, Terminate them.
 Parameters -
 	* HANDLE* threadHandles - arr of thread Handles
 	* ThreadParam** threadParams - arr of pointers to Thread parameters
+	* HANDLE failureEvent - an event to close or NULL if event was not yet opened
 Returns - SUCCESS or NOT_SUCCESS
 	*/
-int clearThreadsAndParameters(HANDLE* threadHandles, ThreadParam** threadParams);
+int clearThreadsAndParameters(HANDLE* threadHandles, ThreadParam** threadParams, HANDLE failureEvent);
 
 /*
 Description - Create the Exit Thread and the Failure Thread. These threads are incharge of making the manager quit
