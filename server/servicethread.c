@@ -324,13 +324,13 @@ int startGame(SOCKET socket, HANDLE h_sharedFile, HANDLE lockEvent, HANDLE syncE
 		//<---write user guess to shared file--->
 		status = writeToFile(h_sharedFile, GUESS_OFFSET, p_userGuess, playerOne, 0);
 		if (NOT_SUCCESS == status) {
-			freeSingleGameMemory(p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
+			freeSingleGameMemory(p_userNum, p_opponentNum, p_userGuess, NULL);
 			return NOT_SUCCESS;
 		}
 		//<---wait that opponent thread write his guess to shared file--->
 		status = SyncTwoThreads(socket, p_numOfPlayersSyncing, p_numOfPlayersInGame, lockEvent, syncEvent);
 		if (GAME_STILL_ON != status) {
-			freeSingleGameMemory(p_userNum, p_opponentNum, p_userGuess, p_opponentGuess);
+			freeSingleGameMemory(p_userNum, p_opponentNum, p_userGuess, NULL);
 			return status;
 		}
 		//<---read opponent guess from shared file--->
@@ -487,14 +487,22 @@ int getResults(char** resultMsg, char* username, char* opponentName, char* userN
 
 void freeSingleGameMemory(char* userNum, char* opponentNum, char* userGuess, char* opponentGuess) {
 
-	if (NULL != userNum)
+	if (NULL != userNum) {
 		free(userNum);
-	if (NULL != userGuess)
+		userNum = NULL;
+	}
+	if (NULL != userGuess) {
 		free(userGuess);
-	if (NULL != opponentGuess)
+		userGuess = NULL;
+	}
+	if (NULL != opponentGuess) {
 		free(opponentGuess);
-	if (NULL != opponentNum)
+		opponentGuess = NULL;
+	}
+	if (NULL != opponentNum) {
 		free(opponentNum);
+		opponentNum = NULL;
+	}
 }
 
 char* winMsg(char* opponentNum, char* winnerName) {
