@@ -30,10 +30,8 @@ int clientManager(char* ip, int portNumber, char* username) {
 	}
 	//<---connect client to server--->
 	retVal = makeConnection(c_socket, clientService, ip, portNumber);
-	if (EXIT == retVal) {
-		resourcesManager(c_socket, CLEAN);
+	if (EXIT == retVal) 
 		return SUCCESS;
-	}
 	else if (NOT_SUCCESS == retVal) {
 		resourcesManager(c_socket, CLEAN);
 		return retVal;
