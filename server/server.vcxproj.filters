@@ -15,7 +15,7 @@
     <Filter Include="Shared Header Files">
       <UniqueIdentifier>{5eb2d841-2e85-41f4-b68d-51928875b005}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shared Header Files\Resource Files">
+    <Filter Include="Header Files\Resource Files">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>

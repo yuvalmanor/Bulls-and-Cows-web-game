@@ -21,46 +21,46 @@ int serverManager(int portNumber) {
 	if (MainSocket == INVALID_SOCKET) {
 		//Free resources, WSACleanup and end program with -1
 		printf("Error at socket( ): %ld\n", WSAGetLastError());
-		ServerManagerFreeResources(INVALID_SOCKET, NULL, NULL, NULL); 
+		ServerManagerFreeResources(INVALID_SOCKET, NULL, NULL, NULL,0); 
 		return NOT_SUCCESS;
 	}
 	//<------- Create a sockaddr_in object and set its values ----->
 	if (SUCCESS != initAddress(LOCALHOST, portNumber, &service)) {
 		printf("Error at socket( ): %ld\n", WSAGetLastError());
-		ServerManagerFreeResources(MainSocket, NULL, NULL, NULL);
+		ServerManagerFreeResources(MainSocket, NULL, NULL, NULL,0);
 		return NOT_SUCCESS;
 	}
 	//<------- Bind ------->
 	bindRes = bind(MainSocket, (SOCKADDR*)&service, sizeof(service));
 	if (bindRes == SOCKET_ERROR) {
 		printf("bind( ) failed with error %ld. Ending program\n", WSAGetLastError());
-		ServerManagerFreeResources(MainSocket, NULL, NULL, NULL);
+		ServerManagerFreeResources(MainSocket, NULL, NULL, NULL,0);
 		return NOT_SUCCESS;
 	}
 	// <-------Listen on the Socket------->
 	ListenRes = listen(MainSocket, SOMAXCONN);
 	if (ListenRes == SOCKET_ERROR) {		
 		printf("Failed listening on socket, error %ld.\n", WSAGetLastError());
-		ServerManagerFreeResources(MainSocket, NULL, NULL, NULL); 
+		ServerManagerFreeResources(MainSocket, NULL, NULL, NULL,0); 
 		return NOT_SUCCESS;
 	}
 	//Make sure there is no GameSessions.txt file- open the file and delete it immedieltly
 	h_file = openOrCreateFile(&index);
 	if (INVALID_HANDLE_VALUE == h_file) {
-		ServerManagerFreeResources(MainSocket, NULL, NULL, NULL);
+		ServerManagerFreeResources(MainSocket, NULL, NULL, NULL,0);
 		return NOT_SUCCESS;
 	}
 	CloseHandle(h_file);
 	if (!DeleteFileA(sharedFile_name)) {
 		printf("DeleteFileA failed. Error code: %d\n", GetLastError());
-		ServerManagerFreeResources(MainSocket, NULL, NULL, NULL);
+		ServerManagerFreeResources(MainSocket, NULL, NULL, NULL,0);
 		return NOT_SUCCESS;
 	}
 	index = 0;
 
 	//Create Failure thread and Exit Thread
 	if (NOT_SUCCESS == createFailureAndExitThreads(threadParams, threadHandles, &MainSocket)) {
-		ServerManagerFreeResources(MainSocket, NULL, NULL, NULL);
+		ServerManagerFreeResources(MainSocket, NULL, NULL, NULL,0);
 		return NOT_SUCCESS;
 	}
 
@@ -98,7 +98,7 @@ int serverManager(int portNumber) {
 		}
 	} //!while(1)
 	clearThreadsAndParameters(threadHandles, threadParams);
-	ServerManagerFreeResources(INVALID_SOCKET, NULL, NULL, NULL);
+	ServerManagerFreeResources(INVALID_SOCKET, NULL, NULL, NULL,CLEAN);
 	printf("ServerManager is quitting\n");
 	return 0;
 
@@ -117,7 +117,7 @@ ThreadParam* initThreadParam(SOCKET socket, int* numOfPlayersInGame, int* numOfP
 	return p_threadparams;
 }
 
-int ServerManagerFreeResources(SOCKET MainSocket, HANDLE lockEvent, HANDLE syncEvent, HANDLE FailureEvent) {
+int ServerManagerFreeResources(SOCKET MainSocket, HANDLE lockEvent, HANDLE syncEvent, HANDLE FailureEvent, int flag) {
 	if (INVALID_SOCKET != MainSocket) {
 		if (closesocket(MainSocket) == SOCKET_ERROR)
 			printf("Failed to close MainSocket in ServerMainFreeResources(). error %ld\n", WSAGetLastError());
@@ -131,9 +131,11 @@ int ServerManagerFreeResources(SOCKET MainSocket, HANDLE lockEvent, HANDLE syncE
 	if (FailureEvent != NULL) {
 		CloseHandle(FailureEvent);
 	}
-	if (WSACleanup() == SOCKET_ERROR) {
-		printf("Failed to close Winsocket in ServerMainFreeResources(). error %ld\n", WSAGetLastError());
-		return NOT_SUCCESS;
+	if (CLEAN == flag) {
+		if (WSACleanup() == SOCKET_ERROR) {
+			printf("Failed to close Winsocket in ServerMainFreeResources(). error %ld\n", WSAGetLastError());
+			return NOT_SUCCESS;
+		}
 	}
 	return SUCCESS;
 }
@@ -203,13 +205,13 @@ void FailureThread(ThreadParam* lpParam) {
 	waitcode = WaitForSingleObject(FailureEvent, INFINITE); //Wait for failure event to be set
 	if (waitcode != WAIT_OBJECT_0) { //If FailureEvent was not set, don't close the main socket
 		printf("FailureThread finishing without failureEvent being set\n");
-		ServerManagerFreeResources(INVALID_SOCKET, lockEvent, syncEvent, FailureEvent);
+		ServerManagerFreeResources(INVALID_SOCKET, lockEvent, syncEvent, FailureEvent,0);
 		return;
 	}
 	//If failureEvent was set, close the main socket
 	if (closesocket(*p_socket) == SOCKET_ERROR)
 		printf("Failed to close MainSocket in FailureThread. error %ld\n", WSAGetLastError());
-	ServerManagerFreeResources(INVALID_SOCKET, lockEvent, syncEvent, FailureEvent);
+	ServerManagerFreeResources(INVALID_SOCKET, lockEvent, syncEvent, FailureEvent,0);
 }
 
 void exitThread(ThreadParam* lpParam) {
@@ -264,6 +266,6 @@ int clearThreadsAndParameters(HANDLE* threadHandles, ThreadParam** threadParams)
 			threadParams[i] = NULL;
 		}
 	}
-	ServerManagerFreeResources(INVALID_SOCKET, lockEvent, syncEvent, FailureEvent);
+	ServerManagerFreeResources(INVALID_SOCKET, lockEvent, syncEvent, FailureEvent,0);
 	return SUCCESS;
 }

@@ -20,7 +20,7 @@ Description – The module that is incharge of creating the Main socket, choosing 
 #include "servicethread.h"
 #include "WinsockFunc.h"
 
-
+#define CLEAN 1
 /*
 Description - The function that manages the server and its threads
 Parameters - 
@@ -46,9 +46,10 @@ Parameters -
 	* HANDLE lockEvent - an event to close or NULL if event was not yet opened
 	* HANDLE syncEvent - an event to close or NULL if event was not yet opened
 	* HANDLE FailureEvent - an event to close or NULL if event was not yet opened
+	* int flag - Flag if need to WSACleanup
 Returns - SUCCESS or NOT_SUCCESS
 	*/
-int ServerManagerFreeResources(SOCKET MainSocket, HANDLE lockEvent, HANDLE syncEvent, HANDLE FailureEvent);
+int ServerManagerFreeResources(SOCKET MainSocket, HANDLE lockEvent, HANDLE syncEvent, HANDLE FailureEvent, int flag);
 /*
 Description - Finds the first unused thread slot (out of the first 3 slots)
 Parameters -
