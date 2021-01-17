@@ -1,9 +1,9 @@
 /*
-Description – A module that enables communication and syncronization between different threads
+Description â€“ A module that enables communication and syncronization between different threads
 */
 #include "ThreadsCommunication.h"
 
-int getEvents(HANDLE* lockEvent, HANDLE* syncEvent, HANDLE* FailureEvent) // CHECK THIS
+int getEvents(HANDLE* lockEvent, HANDLE* syncEvent, HANDLE* FailureEvent) 
 {
 	/* Get handle to event by name. If the event doesn't exist, create it */
 	(*lockEvent) = CreateEvent(
@@ -11,7 +11,7 @@ int getEvents(HANDLE* lockEvent, HANDLE* syncEvent, HANDLE* FailureEvent) // CHE
 		FALSE,       /* auto-reset event */
 		TRUE,      /* initial state is signaled */
 		lockEvent_name);         /* name */
-	/* Check if succeeded and handle errors */
+	
 	if (*lockEvent == NULL) {
 		printf("Counldn't create Event. Error: %d\n", GetLastError());
 		return NOT_SUCCESS;
