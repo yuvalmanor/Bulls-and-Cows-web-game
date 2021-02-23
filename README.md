@@ -8,6 +8,7 @@ For more information about the Bulls and Cows game, you can read in wikipedia: h
 # Input Parameters
   Server:
   - Server Port address: 4 digits port address. For example '8888'
+  
   Client:
   - Server IP address. For example '127.0.0.1'
   - Server Port address: 4 digits port address. For example '8888'
