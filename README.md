@@ -15,6 +15,7 @@ For more information about the Bulls and Cows game, you can read in wikipedia: h
   - Username: Only letters and digits, no spaces.
   
  Run example - server side: >C:\...\server.exe 8888
+ 
  Run example - client side: >C:\...\client.exe 127.0.0.1 8888 Thomas
 
  
